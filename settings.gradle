@@ -1,2 +1,2 @@
-include ':example', ':press', ':graph'
+include ':example', ':press', ':graph', ":tension"
 

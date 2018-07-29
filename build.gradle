@@ -10,18 +10,20 @@ buildscript {
 }
 
 plugins {
-    id 'java'
+    id 'com.moowork.node' version "1.2.0"
 }
 
-group 'com.abplus'
-version '1.0-SNAPSHOT'
-
 apply plugin: 'kotlin2js'
-
-//sourceCompatibility = 1.8
+apply plugin: 'com.moowork.node'
 
 repositories {
     mavenCentral()
+}
+
+allprojects {
+    repositories {
+        jcenter()
+    }
 }
 
 dependencies {

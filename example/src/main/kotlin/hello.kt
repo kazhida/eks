@@ -1,3 +1,6 @@
+
 fun main(args: Array<String>) {
-    println("Hello EksPress")
+    println(helloPress("EksPress"))
+    println(helloGraph("EksPress"))
+    println(helloTension("EksPress"))
 }
