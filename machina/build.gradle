@@ -1,0 +1,26 @@
+group 'com.abplus'
+version '0.0.0'
+
+apply plugin: 'kotlin2js'
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
+    testCompile "org.jetbrains.kotlin:kotlin-test-js:$kotlin_version"
+    compile project(':press')
+}
+
+sourceSets {
+    main.java.srcDirs += 'src/main/kotlin'
+}
+
+compileKotlin2Js {
+    kotlinOptions.metaInfo = true
+    kotlinOptions.sourceMap = true
+    kotlinOptions.suppressWarnings = true
+    kotlinOptions.moduleKind = "commonjs" //this is important to properly allow require() import
+    //kotlinOptions.verbose = true
+}
