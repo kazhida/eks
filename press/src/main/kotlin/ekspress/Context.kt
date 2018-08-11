@@ -6,18 +6,23 @@
  */
 package ekspress
 
+import ekspress.externals.IncomingMessage
+import ekspress.externals.ServerResponse
+import ekspress.externals.req
+import ekspress.externals.res
+
 /**
  * middlewareを渡り歩いていくコンテキスト
  * errにErrorのインスタンスが割り当てられたら、
  * それ以降は、エラーリカバリか、
  * エラーを返すようにmiddlewareを実装する必要がある
  *
- * @args req リクエスト
- * @args res レスポンス
+ * @args request リクエスト
+ * @args response レスポンス
  */
 class Context(
-        val req: Request,
-        val res: Response
+        val request: Request,
+        val response: Response
 ) {
     companion object {
         /**
@@ -74,14 +79,30 @@ class Context(
         @Suppress("unused")
         fun asDouble(key: String): Double? = dict[key]?.toDoubleOrNull()
 
+        /**
+         * 保持
+         *
+         * @args key キー
+         * @args value 値
+         */
         fun put(key: String, value: String) {
             dict[key] = value
         }
 
+        /**
+         * 保持
+         *
+         * @args entry キーと値の組み合わせ
+         */
         fun put(entry: Map.Entry<String, String>) {
             put(entry.key, entry.value)
         }
 
+        /**
+         * 追加
+         *
+         * @args map追加する物が入ったマップ
+         */
         fun add(map: Map<String, String>) {
             map.forEach {
                 put(it)
@@ -96,55 +117,30 @@ class Context(
             var route: Application? = null,
             var method: Method? = null,
             val params: Params = Params()
-    ) {
-
-//        module.exports = req
+    ) : IncomingMessage by req() {
 
         /**
-         * Return request header.
+         * リクエスト・ヘッダの取得
          *
-         * The `Referrer` header field is special-cased,
-         * both `Referrer` and `Referer` are interchangeable.
-         *
-         * Examples:
-         *
-         *     req.get('Content-Type');
-         *     // => "text/plain"
-         *
-         *     req.get('content-type');
-         *     // => "text/plain"
-         *
-         *     req.get('Something');
-         *     // => undefined
-         *
-         * Aliased as `req.header()`.
-         *
-         * @param {String} name
-         * @return {String}
-         * @public
+         * @args name パラメータ名
+         * @return パラメータ、またはnull
          */
+        @Suppress("unused")
+        fun header(name: String): String? {
+            // これがあの有名なTypoか。
+            return when (name.toLowerCase()) {
+                "referer",
+                "referrer" -> arrayOf(this.headers.get("referer"), headers.get("referrer")).find { it != null }
+                else -> this.headers.get(name)
+            }
+        }
 
-//        req.get =
-//        req.header = function header(name) {
-//            if (!name) {
-//                throw new TypeError('name argument is required to req.get');
-//            }
-//
-//            if (typeof name !== 'string') {
-//                throw new TypeError('name must be a string to req.get');
-//            }
-//
-//            var lc = name.toLowerCase();
-//
-//            switch (lc) {
-//                case 'referer':
-//                case 'referrer':
-//                return this.headers.referrer
-//                        || this.headers.referer;
-//                default:
-//                return this.headers[lc];
-//            }
-//        };
+        /**
+         * header()のエイリアス
+         */
+        @Suppress("unused")
+        fun get(name: String) = header(name)
+
 
 
         /**
@@ -164,28 +160,28 @@ class Context(
          * Examples:
          *
          *     // Accept: text/html
-         *     req.accepts('html');
+         *     request.accepts('html');
          *     // => "html"
          *
          *     // Accept: text/ *, application/json
-         *     req.accepts('html');
+         *     request.accepts('html');
          *     // => "html"
-         *     req.accepts('text/html');
+         *     request.accepts('text/html');
          *     // => "text/html"
-         *     req.accepts('json, text');
+         *     request.accepts('json, text');
          *     // => "json"
-         *     req.accepts('application/json');
+         *     request.accepts('application/json');
          *     // => "application/json"
          *
          *     // Accept: text/ *, application/json
-         *     req.accepts('image/png');
-         *     req.accepts('png');
+         *     request.accepts('image/png');
+         *     request.accepts('png');
          *     // => undefined
          *
          *     // Accept: text/ *;q=.5, application/json
-         *     req.accepts(['html', 'json']);
-         *     req.accepts('html', 'json');
-         *     req.accepts('html, json');
+         *     request.accepts(['html', 'json']);
+         *     request.accepts('html', 'json');
+         *     request.accepts('html, json');
          *     // => "json"
          *
          * @param {String|Array} type(s)
@@ -193,7 +189,10 @@ class Context(
          * @public
          */
 
-//        req.accepts = function(){
+        fun accepts() {
+
+        }
+//        request.accepts = function(){
 //            var accept = accepts(this);
 //            return accept.types.apply(accept, arguments);
 //        };
@@ -207,13 +206,13 @@ class Context(
          * @public
          */
 
-//        req.acceptsEncodings = function(){
+//        request.acceptsEncodings = function(){
 //            var accept = accepts(this);
 //            return accept.encodings.apply(accept, arguments);
 //        };
 
-//        req.acceptsEncoding = deprecate.function(req.acceptsEncodings,
-//        'req.acceptsEncoding: Use acceptsEncodings instead');
+//        request.acceptsEncoding = deprecate.function(request.acceptsEncodings,
+//        'request.acceptsEncoding: Use acceptsEncodings instead');
 
         /**
          * Check if the given `charset`s are acceptable,
@@ -224,13 +223,13 @@ class Context(
          * @public
          */
 
-//        req.acceptsCharsets = function(){
+//        request.acceptsCharsets = function(){
 //            var accept = accepts(this);
 //            return accept.charsets.apply(accept, arguments);
 //        };
 
-//        req.acceptsCharset = deprecate.function(req.acceptsCharsets,
-//        'req.acceptsCharset: Use acceptsCharsets instead');
+//        request.acceptsCharset = deprecate.function(request.acceptsCharsets,
+//        'request.acceptsCharset: Use acceptsCharsets instead');
 
         /**
          * Check if the given `lang`s are acceptable,
@@ -241,13 +240,13 @@ class Context(
          * @public
          */
 
-//        req.acceptsLanguages = function(){
+//        request.acceptsLanguages = function(){
 //            var accept = accepts(this);
 //            return accept.languages.apply(accept, arguments);
 //        };
 
-//        req.acceptsLanguage = deprecate.function(req.acceptsLanguages,
-//        'req.acceptsLanguage: Use acceptsLanguages instead');
+//        request.acceptsLanguage = deprecate.function(request.acceptsLanguages,
+//        'request.acceptsLanguage: Use acceptsLanguages instead');
 
         /**
          * Parse Range header field, capping to the given `size`.
@@ -274,7 +273,7 @@ class Context(
          * @public
          */
 
-//        req.range = function range(size, options) {
+//        request.range = function range(size, options) {
 //            var range = this.get('Range');
 //            if (!range) return;
 //            return parseRange(size, range, options);
@@ -287,7 +286,7 @@ class Context(
          *  - Checks body params, ex: id=12, {"id":12}
          *  - Checks query string params, ex: ?id=12
          *
-         * To utilize request bodies, `req.body`
+         * To utilize request bodies, `request.body`
          * should be an object. This can be done by using
          * the `bodyParser()` middleware.
          *
@@ -297,7 +296,7 @@ class Context(
          * @public
          */
 
-//        req.param = function param(name, defaultValue) {
+//        request.param = function param(name, defaultValue) {
 //            var params = this.params || {};
 //            var body = this.body || {};
 //            var query = this.query || {};
@@ -305,7 +304,7 @@ class Context(
 //            var args = arguments.length === 1
 //            ? 'name'
 //            : 'name, default';
-//            deprecate('req.param(' + args + '): Use req.params, req.body, or req.query instead');
+//            deprecate('request.param(' + args + '): Use request.params, request.body, or request.query instead');
 //
 //            if (null != params[name] && params.hasOwnProperty(name)) return params[name];
 //            if (null != body[name]) return body[name];
@@ -321,18 +320,18 @@ class Context(
          * Examples:
          *
          *      // With Content-Type: text/html; charset=utf-8
-         *      req.is('html');
-         *      req.is('text/html');
-         *      req.is('text/ *');
+         *      request.is('html');
+         *      request.is('text/html');
+         *      request.is('text/ *');
          *      // => true
          *
          *      // When Content-Type is application/json
-         *      req.is('json');
-         *      req.is('application/json');
-         *      req.is('application/ *');
+         *      request.is('json');
+         *      request.is('application/json');
+         *      request.is('application/ *');
          *      // => true
          *
-         *      req.is('html');
+         *      request.is('html');
          *      // => false
          *
          * @param {String|Array} types...
@@ -340,7 +339,7 @@ class Context(
          * @public
          */
 
-//        req.is = function is(types) {
+//        request.is = function is(types) {
 //            var arr = types;
 //
 //            // support flattened arguments
@@ -368,7 +367,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'protocol', function protocol(){
+//        defineGetter(request, 'protocol', function protocol(){
 //            var proto = this.connection.encrypted
 //            ? 'https'
 //            : 'http';
@@ -391,13 +390,13 @@ class Context(
         /**
          * Short-hand for:
          *
-         *    req.protocol === 'https'
+         *    request.protocol === 'https'
          *
          * @return {Boolean}
          * @public
          */
 
-//        defineGetter(req, 'secure', function secure(){
+//        defineGetter(request, 'secure', function secure(){
 //            return this.protocol === 'https';
 //        });
 
@@ -411,7 +410,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'ip', function ip(){
+//        defineGetter(request, 'ip', function ip(){
 //            var trust = this.app.get('trust proxy fn');
 //            return proxyaddr(this, trust);
 //        });
@@ -428,7 +427,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'ips', function ips() {
+//        defineGetter(request, 'ips', function ips() {
 //            var trust = this.app.get('trust proxy fn');
 //            var addrs = proxyaddr.all(this, trust);
 //
@@ -447,14 +446,14 @@ class Context(
          * parts of the host. This can be changed by setting "subdomain offset".
          *
          * For example, if the domain is "tobi.ferrets.example.com":
-         * If "subdomain offset" is not set, req.subdomains is `["ferrets", "tobi"]`.
-         * If "subdomain offset" is 3, req.subdomains is `["tobi"]`.
+         * If "subdomain offset" is not set, request.subdomains is `["ferrets", "tobi"]`.
+         * If "subdomain offset" is 3, request.subdomains is `["tobi"]`.
          *
          * @return {Array}
          * @public
          */
 
-//        defineGetter(req, 'subdomains', function subdomains() {
+//        defineGetter(request, 'subdomains', function subdomains() {
 //            var hostname = this.hostname;
 //
 //            if (!hostname) return [];
@@ -468,13 +467,13 @@ class Context(
 //        });
 
         /**
-         * Short-hand for `url.parse(req.url).pathname`.
+         * Short-hand for `url.parse(request.url).pathname`.
          *
          * @return {String}
          * @public
          */
 
-//        defineGetter(req, 'path', function path() {
+//        defineGetter(request, 'path', function path() {
 //            return parse(this).pathname;
 //        });
 
@@ -489,7 +488,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'hostname', function hostname(){
+//        defineGetter(request, 'hostname', function hostname(){
 //            var trust = this.app.get('trust proxy fn');
 //            var host = this.get('X-Forwarded-Host');
 //
@@ -510,11 +509,11 @@ class Context(
 //            : host;
 //        });
 
-        // TODO: change req.host to return host in next major
+        // TODO: change request.host to return host in next major
 
-//        defineGetter(req, 'host', deprecate.function(function host(){
+//        defineGetter(request, 'host', deprecate.function(function host(){
 //            return this.hostname;
-//        }, 'req.host: Use req.hostname instead'));
+//        }, 'request.host: Use request.hostname instead'));
 
         /**
          * Check if the request is fresh, aka
@@ -525,10 +524,10 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'fresh', function(){
+//        defineGetter(request, 'fresh', function(){
 //            var method = this.method;
-//            var res = this.res
-//            var status = res.statusCode
+//            var response = this.response
+//            var status = response.statusCode
 //
 //            // GET or HEAD for weak freshness validation only
 //            if ('GET' !== method && 'HEAD' !== method) return false;
@@ -536,8 +535,8 @@ class Context(
 //            // 2xx or 304 as per rfc2616 14.26
 //            if ((status >= 200 && status < 300) || 304 === status) {
 //                return fresh(this.headers, {
-//                    'etag': res.get('ETag'),
-//                    'last-modified': res.get('Last-Modified')
+//                    'etag': response.get('ETag'),
+//                    'last-modified': response.get('Last-Modified')
 //                })
 //            }
 //
@@ -553,7 +552,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'stale', function stale(){
+//        defineGetter(request, 'stale', function stale(){
 //            return !this.fresh;
 //        });
 
@@ -564,7 +563,7 @@ class Context(
          * @public
          */
 
-//        defineGetter(req, 'xhr', function xhr(){
+//        defineGetter(request, 'xhr', function xhr(){
 //            var val = this.get('X-Requested-With') || '';
 //            return val.toLowerCase() === 'xmlhttprequest';
 //        });
@@ -590,7 +589,7 @@ class Context(
     /**
      * レスポンス
      */
-    class Response {
+    class Response : ServerResponse by res() {
         @Suppress("unused")
         var statusCode: Int = 200
 
@@ -614,7 +613,7 @@ class Context(
          * @public
          */
 
-//        res.status = function status(code) {
+//        response.status = function status(code) {
 //            this.statusCode = code;
 //            return this;
 //        };
@@ -624,7 +623,7 @@ class Context(
          *
          * Examples:
          *
-         *    res.links({
+         *    response.links({
          *      next: 'http://api.example.com/users?page=2',
          *      last: 'http://api.example.com/users?page=5'
          *    });
@@ -634,7 +633,7 @@ class Context(
          * @public
          */
 
-//        res.links = function(links){
+//        response.links = function(links){
 //            var link = this.get('Link') || '';
 //            if (link) link += ', ';
 //            return this.set('Link', link + Object.keys(links).map(function(rel){
@@ -647,18 +646,18 @@ class Context(
          *
          * Examples:
          *
-         *     res.send(Buffer.from('wahoo'));
-         *     res.send({ some: 'json' });
-         *     res.send('<p>some html</p>');
+         *     response.send(Buffer.from('wahoo'));
+         *     response.send({ some: 'json' });
+         *     response.send('<p>some html</p>');
          *
          * @param {string|number|boolean|object|Buffer} body
          * @public
          */
 
-//        res.send = function send(body) {
+//        response.send = function send(body) {
 //            var chunk = body;
 //            var encoding;
-//            var req = this.req;
+//            var request = this.request;
 //            var type;
 //
 //            // settings
@@ -666,25 +665,25 @@ class Context(
 //
 //            // allow status / body
 //            if (arguments.length === 2) {
-//                // res.send(body, status) backwards compat
+//                // response.send(body, status) backwards compat
 //                if (typeof arguments[0] !== 'number' && typeof arguments[1] === 'number') {
-//                    deprecate('res.send(body, status): Use res.status(status).send(body) instead');
+//                    deprecate('response.send(body, status): Use response.status(status).send(body) instead');
 //                    this.statusCode = arguments[1];
 //                } else {
-//                    deprecate('res.send(status, body): Use res.status(status).send(body) instead');
+//                    deprecate('response.send(status, body): Use response.status(status).send(body) instead');
 //                    this.statusCode = arguments[0];
 //                    chunk = arguments[1];
 //                }
 //            }
 //
-//            // disambiguate res.send(status) and res.send(status, num)
+//            // disambiguate response.send(status) and response.send(status, num)
 //            if (typeof chunk === 'number' && arguments.length === 1) {
-//                // res.send(status) will set status message as text string
+//                // response.send(status) will set status message as text string
 //                if (!this.get('Content-Type')) {
 //                    this.type('txt');
 //                }
 //
-//                deprecate('res.send(status): Use res.sendStatus(status) instead');
+//                deprecate('response.send(status): Use response.sendStatus(status) instead');
 //                this.statusCode = chunk;
 //                chunk = statuses[chunk]
 //            }
@@ -754,7 +753,7 @@ class Context(
 //            }
 //
 //            // freshness
-//            if (req.fresh) this.statusCode = 304;
+//            if (request.fresh) this.statusCode = 304;
 //
 //            // strip irrelevant headers
 //            if (204 === this.statusCode || 304 === this.statusCode) {
@@ -764,7 +763,7 @@ class Context(
 //                chunk = '';
 //            }
 //
-//            if (req.method === 'HEAD') {
+//            if (request.method === 'HEAD') {
 //                // skip body for HEAD
 //                this.end();
 //            } else {
@@ -780,24 +779,24 @@ class Context(
          *
          * Examples:
          *
-         *     res.json(null);
-         *     res.json({ user: 'tj' });
+         *     response.json(null);
+         *     response.json({ user: 'tj' });
          *
          * @param {string|number|boolean|object} obj
          * @public
          */
 
-//        res.json = function json(obj) {
+//        response.json = function json(obj) {
 //            var val = obj;
 //
 //            // allow status / body
 //            if (arguments.length === 2) {
-//                // res.json(body, status) backwards compat
+//                // response.json(body, status) backwards compat
 //                if (typeof arguments[1] === 'number') {
-//                    deprecate('res.json(obj, status): Use res.status(status).json(obj) instead');
+//                    deprecate('response.json(obj, status): Use response.status(status).json(obj) instead');
 //                    this.statusCode = arguments[1];
 //                } else {
-//                    deprecate('res.json(status, obj): Use res.status(status).json(obj) instead');
+//                    deprecate('response.json(status, obj): Use response.status(status).json(obj) instead');
 //                    this.statusCode = arguments[0];
 //                    val = arguments[1];
 //                }
@@ -823,24 +822,24 @@ class Context(
          *
          * Examples:
          *
-         *     res.jsonp(null);
-         *     res.jsonp({ user: 'tj' });
+         *     response.jsonp(null);
+         *     response.jsonp({ user: 'tj' });
          *
          * @param {string|number|boolean|object} obj
          * @public
          */
 
-//        res.jsonp = function jsonp(obj) {
+//        response.jsonp = function jsonp(obj) {
 //            var val = obj;
 //
 //            // allow status / body
 //            if (arguments.length === 2) {
-//                // res.json(body, status) backwards compat
+//                // response.json(body, status) backwards compat
 //                if (typeof arguments[1] === 'number') {
-//                    deprecate('res.jsonp(obj, status): Use res.status(status).json(obj) instead');
+//                    deprecate('response.jsonp(obj, status): Use response.status(status).json(obj) instead');
 //                    this.statusCode = arguments[1];
 //                } else {
-//                    deprecate('res.jsonp(status, obj): Use res.status(status).jsonp(obj) instead');
+//                    deprecate('response.jsonp(status, obj): Use response.status(status).jsonp(obj) instead');
 //                    this.statusCode = arguments[0];
 //                    val = arguments[1];
 //                }
@@ -852,7 +851,7 @@ class Context(
 //            var replacer = app.get('json replacer');
 //            var spaces = app.get('json spaces');
 //            var body = stringify(val, replacer, spaces, escape)
-//            var callback = this.req.query[app.get('jsonp callback name')];
+//            var callback = this.request.query[app.get('jsonp callback name')];
 //
 //            // content-type
 //            if (!this.get('Content-Type')) {
@@ -895,13 +894,13 @@ class Context(
          *
          * Examples:
          *
-         *     res.sendStatus(200);
+         *     response.sendStatus(200);
          *
          * @param {number} statusCode
          * @public
          */
 
-//        res.sendStatus = function sendStatus(statusCode) {
+//        response.sendStatus = function sendStatus(statusCode) {
 //            var body = statuses[statusCode] || String(statusCode)
 //
 //            this.statusCode = statusCode;
@@ -915,7 +914,7 @@ class Context(
          *
          * Automatically sets the _Content-Type_ response header field.
          * The callback `callback(err)` is invoked when the transfer is complete
-         * or when an error occurs. Be sure to check `res.sentHeader`
+         * or when an error occurs. Be sure to check `response.sentHeader`
          * if you wish to attempt responding, as the header and some data
          * may have already been transferred.
          *
@@ -930,20 +929,20 @@ class Context(
          *
          * Examples:
          *
-         *  The following example illustrates how `res.sendFile()` may
+         *  The following example illustrates how `response.sendFile()` may
          *  be used as an alternative for the `static()` middleware for
-         *  dynamic situations. The code backing `res.sendFile()` is actually
+         *  dynamic situations. The code backing `response.sendFile()` is actually
          *  the same code, so HTTP cache support etc is identical.
          *
-         *     app.get('/user/:uid/photos/:file', function(req, res){
-         *       var uid = req.params.uid
-         *         , file = req.params.file;
+         *     app.get('/user/:uid/photos/:file', function(request, response){
+         *       var uid = request.params.uid
+         *         , file = request.params.file;
          *
-         *       req.user.mayViewFilesFrom(uid, function(yes){
+         *       request.user.mayViewFilesFrom(uid, function(yes){
          *         if (yes) {
-         *           res.sendFile('/uploads/' + uid + '/' + file);
+         *           response.sendFile('/uploads/' + uid + '/' + file);
          *         } else {
-         *           res.send(403, 'Sorry! you cant see that.');
+         *           response.send(403, 'Sorry! you cant see that.');
          *         }
          *       });
          *     });
@@ -951,15 +950,15 @@ class Context(
          * @public
          */
 
-//        res.sendFile = function sendFile(path, options, callback) {
+//        response.sendFile = function sendFile(path, options, callback) {
 //            var done = callback;
-//            var req = this.req;
-//            var res = this;
-//            var next = req.next;
+//            var request = this.request;
+//            var response = this;
+//            var next = request.next;
 //            var opts = options || {};
 //
 //            if (!path) {
-//                throw new TypeError('path argument is required to res.sendFile');
+//                throw new TypeError('path argument is required to response.sendFile');
 //            }
 //
 //            // support function as second arg
@@ -969,15 +968,15 @@ class Context(
 //            }
 //
 //            if (!opts.root && !isAbsolute(path)) {
-//                throw new TypeError('path must be absolute or specify root to res.sendFile');
+//                throw new TypeError('path must be absolute or specify root to response.sendFile');
 //            }
 //
 //            // create file stream
 //            var pathname = encodeURI(path);
-//            var file = send(req, pathname, opts);
+//            var file = send(request, pathname, opts);
 //
 //            // transfer
-//            sendfile(res, file, opts, function (err) {
+//            sendfile(response, file, opts, function (err) {
 //                if (done) return done(err);
 //                if (err && err.code === 'EISDIR') return next();
 //
@@ -993,7 +992,7 @@ class Context(
          *
          * Automatically sets the _Content-Type_ response header field.
          * The callback `callback(err)` is invoked when the transfer is complete
-         * or when an error occurs. Be sure to check `res.sentHeader`
+         * or when an error occurs. Be sure to check `response.sentHeader`
          * if you wish to attempt responding, as the header and some data
          * may have already been transferred.
          *
@@ -1008,20 +1007,20 @@ class Context(
          *
          * Examples:
          *
-         *  The following example illustrates how `res.sendfile()` may
+         *  The following example illustrates how `response.sendfile()` may
          *  be used as an alternative for the `static()` middleware for
-         *  dynamic situations. The code backing `res.sendfile()` is actually
+         *  dynamic situations. The code backing `response.sendfile()` is actually
          *  the same code, so HTTP cache support etc is identical.
          *
-         *     app.get('/user/:uid/photos/:file', function(req, res){
-         *       var uid = req.params.uid
-         *         , file = req.params.file;
+         *     app.get('/user/:uid/photos/:file', function(request, response){
+         *       var uid = request.params.uid
+         *         , file = request.params.file;
          *
-         *       req.user.mayViewFilesFrom(uid, function(yes){
+         *       request.user.mayViewFilesFrom(uid, function(yes){
          *         if (yes) {
-         *           res.sendfile('/uploads/' + uid + '/' + file);
+         *           response.sendfile('/uploads/' + uid + '/' + file);
          *         } else {
-         *           res.send(403, 'Sorry! you cant see that.');
+         *           response.send(403, 'Sorry! you cant see that.');
          *         }
          *       });
          *     });
@@ -1029,11 +1028,11 @@ class Context(
          * @public
          */
 
-//        res.sendfile = function (path, options, callback) {
+//        response.sendfile = function (path, options, callback) {
 //            var done = callback;
-//            var req = this.req;
-//            var res = this;
-//            var next = req.next;
+//            var request = this.request;
+//            var response = this;
+//            var next = request.next;
 //            var opts = options || {};
 //
 //            // support function as second arg
@@ -1043,10 +1042,10 @@ class Context(
 //            }
 //
 //            // create file stream
-//            var file = send(req, path, opts);
+//            var file = send(request, path, opts);
 //
 //            // transfer
-//            sendfile(res, file, opts, function (err) {
+//            sendfile(response, file, opts, function (err) {
 //                if (done) return done(err);
 //                if (err && err.code === 'EISDIR') return next();
 //
@@ -1057,8 +1056,8 @@ class Context(
 //            });
 //        };
 
-//        res.sendfile = deprecate.function(res.sendfile,
-//        'res.sendfile: Use res.sendFile instead');
+//        response.sendfile = deprecate.function(response.sendfile,
+//        'response.sendfile: Use response.sendFile instead');
 
         /**
          * Transfer the file at the given `path` as an attachment.
@@ -1066,19 +1065,19 @@ class Context(
          * Optionally providing an alternate attachment `filename`,
          * and optional callback `callback(err)`. The callback is invoked
          * when the data transfer is complete, or when an error has
-         * ocurred. Be sure to check `res.headersSent` if you plan to respond.
+         * ocurred. Be sure to check `response.headersSent` if you plan to respond.
          *
-         * Optionally providing an `options` object to use with `res.sendFile()`.
+         * Optionally providing an `options` object to use with `response.sendFile()`.
          * This function will set the `Content-Disposition` header, overriding
          * any `Content-Disposition` header passed as header options in order
          * to set the attachment and filename.
          *
-         * This method uses `res.sendFile()`.
+         * This method uses `response.sendFile()`.
          *
          * @public
          */
 
-//        res.download = function download (path, filename, options, callback) {
+//        response.download = function download (path, filename, options, callback) {
 //            var done = callback;
 //            var name = filename;
 //            var opts = options || null
@@ -1126,19 +1125,19 @@ class Context(
          *
          * Examples:
          *
-         *     res.type('.html');
-         *     res.type('html');
-         *     res.type('json');
-         *     res.type('application/json');
-         *     res.type('png');
+         *     response.type('.html');
+         *     response.type('html');
+         *     response.type('json');
+         *     response.type('application/json');
+         *     response.type('png');
          *
          * @param {String} type
          * @return {ServerResponse} for chaining
          * @public
          */
 
-//        res.contentType =
-//        res.type = function contentType(type) {
+//        response.contentType =
+//        response.type = function contentType(type) {
 //            var ct = type.indexOf('/') === -1
 //            ? mime.lookup(type)
 //            : type;
@@ -1150,7 +1149,7 @@ class Context(
          * Respond to the Acceptable formats using an `obj`
          * of mime-type callbacks.
          *
-         * This method uses `req.accepted`, an array of
+         * This method uses `request.accepted`, an array of
          * acceptable types ordered by their quality values.
          * When "Accept" is not present the _first_ callback
          * is invoked, otherwise the first match is used. When
@@ -1158,37 +1157,37 @@ class Context(
          * 406 "Not Acceptable".
          *
          * Content-Type is set for you, however if you choose
-         * you may alter this within the callback using `res.type()`
-         * or `res.set('Content-Type', ...)`.
+         * you may alter this within the callback using `response.type()`
+         * or `response.set('Content-Type', ...)`.
          *
-         *    res.format({
+         *    response.format({
          *      'text/plain': function(){
-         *        res.send('hey');
+         *        response.send('hey');
          *      },
          *
          *      'text/html': function(){
-         *        res.send('<p>hey</p>');
+         *        response.send('<p>hey</p>');
          *      },
          *
          *      'appliation/json': function(){
-         *        res.send({ message: 'hey' });
+         *        response.send({ message: 'hey' });
          *      }
          *    });
          *
          * In addition to canonicalized MIME types you may
          * also use extnames mapped to these types:
          *
-         *    res.format({
+         *    response.format({
          *      text: function(){
-         *        res.send('hey');
+         *        response.send('hey');
          *      },
          *
          *      html: function(){
-         *        res.send('<p>hey</p>');
+         *        response.send('<p>hey</p>');
          *      },
          *
          *      json: function(){
-         *        res.send({ message: 'hey' });
+         *        response.send({ message: 'hey' });
          *      }
          *    });
          *
@@ -1203,23 +1202,23 @@ class Context(
          * @public
          */
 
-//        res.format = function(obj){
-//            var req = this.req;
-//            var next = req.next;
+//        response.format = function(obj){
+//            var request = this.request;
+//            var next = request.next;
 //
 //            var fn = obj.default;
 //            if (fn) delete obj.default;
 //            var keys = Object.keys(obj);
 //
 //            var key = keys.length > 0
-//            ? req.accepts(keys)
+//            ? request.accepts(keys)
 //            : false;
 //
 //            this.vary("Accept");
 //
 //            if (key) {
 //                this.set('Content-Type', normalizeType(key).value);
-//                obj[key](req, this, next);
+//                obj[key](request, this, next);
 //            } else if (fn) {
 //                fn();
 //            } else {
@@ -1240,7 +1239,7 @@ class Context(
          * @public
          */
 
-//        res.attachment = function attachment(filename) {
+//        response.attachment = function attachment(filename) {
 //            if (filename) {
 //                this.type(extname(filename));
 //            }
@@ -1255,9 +1254,9 @@ class Context(
          *
          * Example:
          *
-         *    res.append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
-         *    res.append('Set-Cookie', 'foo=bar; Path=/; HttpOnly');
-         *    res.append('Warning', '199 Miscellaneous warning');
+         *    response.append('Link', ['<http://localhost/>', '<http://localhost:3000/>']);
+         *    response.append('Set-Cookie', 'foo=bar; Path=/; HttpOnly');
+         *    response.append('Warning', '199 Miscellaneous warning');
          *
          * @param {String} field
          * @param {String|Array} val
@@ -1265,7 +1264,7 @@ class Context(
          * @public
          */
 
-//        res.append = function append(field, val) {
+//        response.append = function append(field, val) {
 //            var prev = this.get(field);
 //            var value = val;
 //
@@ -1285,11 +1284,11 @@ class Context(
          *
          * Examples:
          *
-         *    res.set('Foo', ['bar', 'baz']);
-         *    res.set('Accept', 'application/json');
-         *    res.set({ Accept: 'text/plain', 'X-API-Key': 'tobi' });
+         *    response.set('Foo', ['bar', 'baz']);
+         *    response.set('Accept', 'application/json');
+         *    response.set({ Accept: 'text/plain', 'X-API-Key': 'tobi' });
          *
-         * Aliased as `res.header()`.
+         * Aliased as `response.header()`.
          *
          * @param {String|Object} field
          * @param {String|Array} val
@@ -1297,8 +1296,8 @@ class Context(
          * @public
          */
 
-//        res.set =
-//        res.header = function header(field, val) {
+//        response.set =
+//        response.header = function header(field, val) {
 //            if (arguments.length === 2) {
 //                var value = Array.isArray(val)
 //                ? val.map(String)
@@ -1332,7 +1331,7 @@ class Context(
          * @public
          */
 
-//        res.get = function(field){
+//        response.get = function(field){
 //            return this.getHeader(field);
 //        };
 
@@ -1345,7 +1344,7 @@ class Context(
          * @public
          */
 
-//        res.clearCookie = function clearCookie(name, options) {
+//        response.clearCookie = function clearCookie(name, options) {
 //            var opts = merge({ expires: new Date(1), path: '/' }, options);
 //
 //            return this.cookie(name, '', opts);
@@ -1363,10 +1362,10 @@ class Context(
          * Examples:
          *
          *    // "Remember Me" for 15 minutes
-         *    res.cookie('rememberme', '1', { expires: new Date(Date.now() + 900000), httpOnly: true });
+         *    response.cookie('rememberme', '1', { expires: new Date(Date.now() + 900000), httpOnly: true });
          *
          *    // save as above
-         *    res.cookie('rememberme', '1', { maxAge: 900000, httpOnly: true })
+         *    response.cookie('rememberme', '1', { maxAge: 900000, httpOnly: true })
          *
          * @param {String} name
          * @param {String|Object} value
@@ -1375,9 +1374,9 @@ class Context(
          * @public
          */
 
-//        res.cookie = function (name, value, options) {
+//        response.cookie = function (name, value, options) {
 //            var opts = merge({}, options);
-//            var secret = this.req.secret;
+//            var secret = this.request.secret;
 //            var signed = opts.signed;
 //
 //            if (signed && !secret) {
@@ -1414,21 +1413,21 @@ class Context(
          *
          * Examples:
          *
-         *    res.location('/foo/bar').;
-         *    res.location('http://example.com');
-         *    res.location('../login');
+         *    response.location('/foo/bar').;
+         *    response.location('http://example.com');
+         *    response.location('../login');
          *
          * @param {String} url
          * @return {ServerResponse} for chaining
          * @public
          */
 
-//        res.location = function location(url) {
+//        response.location = function location(url) {
 //            var loc = url;
 //
 //            // "back" is an alias for the referrer
 //            if (url === 'back') {
-//                loc = this.req.get('Referrer') || '/';
+//                loc = this.request.get('Referrer') || '/';
 //            }
 //
 //            // set location
@@ -1439,21 +1438,21 @@ class Context(
          * Redirect to the given `url` with optional response `status`
          * defaulting to 302.
          *
-         * The resulting `url` is determined by `res.location()`, so
+         * The resulting `url` is determined by `response.location()`, so
          * it will play nicely with mounted apps, relative paths,
          * `"back"` etc.
          *
          * Examples:
          *
-         *    res.redirect('/foo/bar');
-         *    res.redirect('http://example.com');
-         *    res.redirect(301, 'http://example.com');
-         *    res.redirect('../login'); // /blog/post/1 -> /blog/login
+         *    response.redirect('/foo/bar');
+         *    response.redirect('http://example.com');
+         *    response.redirect(301, 'http://example.com');
+         *    response.redirect('../login'); // /blog/post/1 -> /blog/login
          *
          * @public
          */
 
-//        res.redirect = function redirect(url) {
+//        response.redirect = function redirect(url) {
 //            var address = url;
 //            var body;
 //            var status = 302;
@@ -1464,7 +1463,7 @@ class Context(
 //                    status = arguments[0];
 //                    address = arguments[1];
 //                } else {
-//                    deprecate('res.redirect(url, status): Use res.redirect(status, url) instead');
+//                    deprecate('response.redirect(url, status): Use response.redirect(status, url) instead');
 //                    status = arguments[1];
 //                }
 //            }
@@ -1492,7 +1491,7 @@ class Context(
 //            this.statusCode = status;
 //            this.set('Content-Length', Buffer.byteLength(body));
 //
-//            if (this.req.method === 'HEAD') {
+//            if (this.request.method === 'HEAD') {
 //                this.end();
 //            } else {
 //                this.end(body);
@@ -1508,10 +1507,10 @@ class Context(
          * @public
          */
 
-//        res.vary = function(field){
+//        response.vary = function(field){
 //            // checks for back-compat
 //            if (!field || (Array.isArray(field) && !field.length)) {
-//                deprecate('res.vary(): Provide a field name');
+//                deprecate('response.vary(): Provide a field name');
 //                return this;
 //            }
 //
@@ -1533,11 +1532,11 @@ class Context(
          * @public
          */
 
-//        res.render = function render(view, options, callback) {
-//            var app = this.req.app;
+//        response.render = function render(view, options, callback) {
+//            var app = this.request.app;
 //            var done = callback;
 //            var opts = options || {};
-//            var req = this.req;
+//            var request = this.request;
 //            var self = this;
 //
 //            // support callback function as second arg
@@ -1546,12 +1545,12 @@ class Context(
 //                opts = {};
 //            }
 //
-//            // merge res.locals
+//            // merge response.locals
 //            opts._locals = self.locals;
 //
 //            // default callback to respond
 //            done = done || function (err, str) {
-//                if (err) return req.next(err);
+//                if (err) return request.next(err);
 //                self.send(str);
 //            };
 //
@@ -1560,7 +1559,7 @@ class Context(
 //        };
 
         // pipe the send file stream
-//        function sendfile(res, file, options, callback) {
+//        function sendfile(response, file, options, callback) {
 //            var done = false;
 //            var streaming;
 //
@@ -1631,23 +1630,23 @@ class Context(
 //            file.on('error', onerror);
 //            file.on('file', onfile);
 //            file.on('stream', onstream);
-//            onFinished(res, onfinish);
+//            onFinished(response, onfinish);
 //
 //            if (options.headers) {
 //                // set headers on successful transfer
-//                file.on('headers', function headers(res) {
+//                file.on('headers', function headers(response) {
 //                    var obj = options.headers;
 //                    var keys = Object.keys(obj);
 //
 //                    for (var i = 0; i < keys.length; i++) {
 //                    var k = keys[i];
-//                    res.setHeader(k, obj[k]);
+//                    response.setHeader(k, obj[k]);
 //                }
 //                });
 //            }
 //
 //            // pipe
-//            file.pipe(res);
+//            file.pipe(response);
 //        }
 //
         /**

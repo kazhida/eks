@@ -30,6 +30,11 @@ enum class Method {
 typealias Handler = (context: Context, next: NextProc)->Unit
 
 /**
+ * 引数も返値も持たないコールバック関数型
+ */
+typealias EmptyCallback = ()->Unit
+
+/**
  * Expressでのnext()は、クロージャなので、Applicationないのクラスで代用している
  * ここでは、そのインターフェースだけ決めている
  */
@@ -43,7 +48,7 @@ interface NextProc {
 /**
  * ミドルウェアの大本
  */
-abstract class Middleware {
+interface Middleware {
 
     /**
      * ハンドラ
@@ -54,7 +59,7 @@ abstract class Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    open fun handle(context: Context, next: NextProc?) {
+    fun handle(context: Context, next: NextProc?) {
         if (next != null) {
             if (context.hasError) {
                 errorHandle(context, next)
@@ -70,7 +75,7 @@ abstract class Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    abstract fun requestHandle(context: Context, next: NextProc)
+    fun requestHandle(context: Context, next: NextProc)
 
     /**
      * エラー・ハンドラ
@@ -78,7 +83,7 @@ abstract class Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    abstract fun errorHandle(context: Context, next: NextProc)
+    fun errorHandle(context: Context, next: NextProc)
 
     /**
      * エラーはスルーする実装になっているので、
@@ -86,7 +91,7 @@ abstract class Middleware {
      * このクラスを継承する。
      */
     @Suppress("unused")
-    abstract class OnRequest : Middleware() {
+    interface OnRequest : Middleware {
         override fun errorHandle(context: Context, next: NextProc) { next.call(context) }
 
         /**
@@ -94,7 +99,7 @@ abstract class Middleware {
          *
          * @args handler 正常時の処理を行う関数
          */
-        class Instant(private val handler: Handler) : OnRequest() {
+        class Instant(private val handler: Handler) : OnRequest {
             override fun requestHandle(context: Context, next: NextProc) = handler(context, next)
         }
     }
@@ -104,7 +109,7 @@ abstract class Middleware {
      * エラー・ハンドラの場合は、このクラスを継承する
      */
     @Suppress("unused")
-    abstract class OnError : Middleware() {
+    interface OnError : Middleware {
         override fun requestHandle(context: Context, next: NextProc) { next.call(context) }
 
         /**
@@ -112,7 +117,7 @@ abstract class Middleware {
          *
          * @args handler エラー時の処理を行う関数
          */
-        class Instant(private val handler: Handler) : OnError() {
+        class Instant(private val handler: Handler) : OnError {
             override fun errorHandle(context: Context, next: NextProc) = handler(context, next)
         }
     }

@@ -6,10 +6,13 @@
  */
 package ekspress
 
+import ekspress.externals.*
+
 class Application(
         private val path: Path = Path("/"),
+
         private val handler: Middleware? = null
-) : Middleware(), NextProc {
+) : Middleware, NextProc, EventEmitter by eventEmitter() {
     /*-------------*/
     /*     API     */
     /*-------------*/
@@ -47,12 +50,78 @@ class Application(
 //
 //    }
 
+    /**
+     * Listen for connections.
+     *
+     * A node `http.Server` is returned, with this
+     * application (which is a `Function`) as its
+     * callback. If you wish to create both an HTTP
+     * and HTTPS server you may do so with the "http"
+     * and "https" modules as shown here:
+     *
+     *    var http = require('http')
+     *      , https = require('https')
+     *      , express = require('express')
+     *      , app = express();
+     *
+     *    http.createServer(app).listen(80);
+     *    https.createServer({ ... }, app).listen(443);
+     *
+     * @return {http.Server}
+     * @public
+     */
+
+    /**
+     * httpでのlisten開始
+     *
+     * @args port ポート番号
+     * @args callback 開始後に呼ばれるコールバック
+     * @args args listen時のオプション
+     * @return 生成したサーバ
+     */
+    @Suppress("unused")
+    fun listenHttp(port: Int, callback: EmptyCallback? = null, vararg args: Any?): Server {
+        return http.createServer(this, null).listen(port, callback, args)
+    }
+
+    /**
+     * httpsでのlisten開始
+     *
+     * いろいろオプションを渡せるはずなのだけど、
+     * 樋田の理解がそこまで至っていない
+     *
+     * @args port ポート番号
+     * @args callback 開始後に呼ばれるコールバック
+     * @args args listen時のオプション
+     * @return 生成したサーバ
+     */
+    @Suppress("unused")
+    fun listenHttps(port: Int, callback: EmptyCallback? = null, vararg args: Any?): Server {
+        return https.createServer(this, null).listen(port, callback, args)
+    }
+
+//    app.listen = function listen() {
+//        var server = http.createServer(this);
+//        return server.listen.apply(server, arguments);
+//    };
+
     /*-------------*/
     /*  プロパティ */
     /*-------------*/
 
     private val subApps = HashMap<String, Application>()
     private val stack: List<Layer> = ArrayList()
+
+//    private val cache: Any = Any()
+//    private val engines: Any = Any()
+//    private val settings: Any = Any()
+//
+//    private val x_powered_by = true
+//    private val etag = "weak"
+//    //private val env = Process.env.NODE_ENV || 'development';
+//    private val query_parser = "extended"
+//    private val subdomain_offset = 2
+//    private val trust_proxy = false
 
     /**
      * Middlewareとしてのハンドラの再定義
@@ -91,20 +160,6 @@ class Application(
 
 
 
-//    this.cache = {};
-//    this.engines = {};
-//    this.settings = {};
-//
-//    var env = process.env.NODE_ENV || 'development';
-//
-//    // default settings
-//    this.enable('x-powered-by');
-//    this.set('etag', 'weak');
-//    this.set('env', env);
-//    this.set('query parser', 'extended');
-//    this.set('subdomain offset', 2);
-//    this.set('trust proxy', false);
-//
 //    // trust proxy inherit back-compat
 //    Object.defineProperty(this.settings, trustProxyDefaultSymbol, {
 //        configurable: true,
@@ -173,7 +228,7 @@ class Application(
 //    };
 
     /**
-     * Dispatch a req, res pair into the application. Starts pipeline processing.
+     * Dispatch a request, res pair into the application. Starts pipeline processing.
      *
      * If no callback is provided, then default error handlers will respond
      * in the event of an error bubbling through the stack.
@@ -181,11 +236,11 @@ class Application(
      * @private
      */
 
-//    app.handle = function handle(req, res, callback) {
+//    app.handle = function handle(request, res, callback) {
 //        var router = this._router;
 //
 //        // final handle
-//        var done = callback || finalhandler(req, res, {
+//        var done = callback || finalhandler(request, res, {
 //            env: this.get('env'),
 //            onerror: logerror.bind(this)
 //        });
@@ -197,7 +252,7 @@ class Application(
 //            return;
 //        }
 //
-//        router.handle(req, res, done);
+//        router.handle(request, res, done);
 //    };
 
     /**
@@ -250,11 +305,11 @@ class Application(
 //            fn.mountpath = path;
 //            fn.parent = this;
 //
-//            // restore .app property on req and res
-//            router.use(path, function mounted_app(req, res, next) {
-//                var orig = req.app;
-//                fn.handle(req, res, function (err) {
-//                    setPrototypeOf(req, orig.request)
+//            // restore .app property on request and res
+//            router.use(path, function mounted_app(request, res, next) {
+//                var orig = request.app;
+//                fn.handle(request, res, function (err) {
+//                    setPrototypeOf(request, orig.request)
 //                    setPrototypeOf(res, orig.response)
 //                    next(err);
 //                });
@@ -618,31 +673,6 @@ class Application(
 //        tryRender(view, renderOptions, done);
 //    };
 
-    /**
-     * Listen for connections.
-     *
-     * A node `http.Server` is returned, with this
-     * application (which is a `Function`) as its
-     * callback. If you wish to create both an HTTP
-     * and HTTPS server you may do so with the "http"
-     * and "https" modules as shown here:
-     *
-     *    var http = require('http')
-     *      , https = require('https')
-     *      , express = require('express')
-     *      , app = express();
-     *
-     *    http.createServer(app).listen(80);
-     *    https.createServer({ ... }, app).listen(443);
-     *
-     * @return {http.Server}
-     * @public
-     */
-
-//    app.listen = function listen() {
-//        var server = http.createServer(this);
-//        return server.listen.apply(server, arguments);
-//    };
 
     /**
      * Log error using console.error.
@@ -673,7 +703,7 @@ class Application(
         if (stack.isEmpty()) {
             handle(context, this)
         } else {
-            context.req.route = this
+            context.request.route = this
             val dup = ArrayList<Layer>().apply { addAll(stack) }
             RouteNext(this, dup).call(context)
         }
@@ -703,7 +733,7 @@ class Application(
             return if (params == null) {
                 false
             } else if (this.method == null || this.method == method) {
-                context.req.params.add(params)
+                context.request.params.add(params)
                 true
             } else {
                 false
@@ -729,7 +759,7 @@ class Application(
             }
             if (layer == null) {
                 done.call(context)
-            } else if (context.req.method != null && context.req.method != layer.method) {
+            } else if (context.request.method != null && context.request.method != layer.method) {
                 // 再帰呼び出し
                 call(context)
             } else {
