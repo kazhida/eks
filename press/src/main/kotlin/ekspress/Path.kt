@@ -107,4 +107,8 @@ class Path private constructor(src: List<String>) {
             }
         }
     }
+
+    private val pathString: String by lazy { directories.joinToString("/") }
+
+    fun equals(other: String): Boolean = pathString == other
 }

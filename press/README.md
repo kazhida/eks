@@ -5,3 +5,4 @@ Express.jsを参考に、すべてをKotlinで書くというプロジェクト�
 
 必要なものはすべてKotlinで書くので型がある。
 つまり、Express.jsをKotlinで使うより、使いやすいはず。
+

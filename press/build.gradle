@@ -23,3 +23,8 @@ compileKotlin2Js {
     kotlinOptions.moduleKind = "commonjs" //this is important to properly allow require() import
     //kotlinOptions.verbose = true
 }
+kotlin {
+    experimental {
+        coroutines "enable"
+    }
+}
