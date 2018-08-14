@@ -13,12 +13,13 @@ import kotlin.coroutines.experimental.*
 import kotlin.js.Promise
 
 /**
- * ekspressがサポートするメソッドは、当面、この4種類
+ * ekspressがサポートするメソッドは、当面、この5種類
  *
  * 本当はここにある必要はないのだけど、
  * ミドルウェアを作る時にここにあった方がいいかなと思ったので、ここに置いた。
  */
 enum class Method {
+    HEAD,
     GET,
     PUT,
     POST,

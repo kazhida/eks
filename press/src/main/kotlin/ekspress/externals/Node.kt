@@ -88,12 +88,17 @@ object NodeUrl {
     val format = require("url").format.unsafeCast<(urlObject: dynamic, options: Any?)->String?>()
 }
 
-object QueryString {
+object NodeQueryString {
     private val qs = require("querystring")
     val parse = qs.parse.unsafeCast<(qs: dynamic, sep: dynamic, eq: dynamic, options: dynamic)->dynamic>()
     val stringify = qs.stringify.unsafeCast<(obj: dynamic, sep: dynamic, eq: dynamic, options: dynamic)->String?>()
 }
 
-object Net {
+object NodeNet {
     val isIP = require("net").isIP.unsafeCast<(hostname: String)->Int>()
+}
+
+object NodePath {
+    private val path = require("path")
+    val extname = path.extname.unsafeCast<(filename: String)->String>()
 }

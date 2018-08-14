@@ -21,19 +21,12 @@ import kotlin.js.RegExp
  * @args res レスポンス
  */
 class Context(
-        @Suppress("unused")
         val app: Application,
-        @Suppress("unused")
         val req: dynamic,
-        @Suppress("unused")
         val res: dynamic
 ) {
-    @Suppress("unused")
     val request = Request(app, this, req, res)
-    @Suppress("unused")
     val response = Response(app, this, req, res)
-    @Suppress("unused")
-    val originalUrl = request.originalUrl
     var status: Int = 404
 
     /**
@@ -256,12 +249,25 @@ class Context(
                 querystring = value
             }
 
-        // fixme ekspressのMethos型で扱いたい
         @Suppress("unused")
-        var method: String
-            get() = req?.method?.unsafeCast<String?>() ?: ""
+        var method: Method?
+            get() = when (req?.method?.unsafeCast<String?>()?.toUpperCase()) {
+                "HEAD" -> Method.HEAD
+                "GET" -> Method.GET
+                "PUT" -> Method.PUT
+                "POST" -> Method.POST
+                "DELETE" -> Method.DELETE
+                else -> null
+            }
             set(value) {
-                this.req?.method = value
+                this.req?.method = when (value) {
+                    Method.HEAD -> "HEAD"
+                    Method.GET -> "GET"
+                    Method.PUT -> "PUT"
+                    Method.POST -> "POST"
+                    Method.DELETE -> "DELETE"
+                    else -> ""
+                }
             }
 
         @Suppress("unused")
@@ -270,12 +276,12 @@ class Context(
                 val s = querystring
                 val c = _querycache
                 if (c[s] == null) {
-                    c[s] = QueryString.parse(s, null, null, null)
+                    c[s] = NodeQueryString.parse(s, null, null, null)
                 }
                 return c[s]?.unsafeCast<Any?>()
             }
             set(value) {
-                querystring = QueryString.stringify(value, null, null, null) ?: ""
+                querystring = NodeQueryString.stringify(value, null, null, null) ?: ""
             }
 
         @Suppress("unused")
@@ -286,7 +292,7 @@ class Context(
                 if (url != null && url.pathname != value) {
                     url.pathname = value
                     url.path = null
-                    this.url = QueryString.stringify(url, null, null, null)
+                    this.url = NodeQueryString.stringify(url, null, null, null)
                 }
             }
 
@@ -311,7 +317,7 @@ class Context(
         val subdomains: List<String> get() {
             val offset = this.app.subdomainOffset
             val hostname = this.hostname
-            if (Net.isIP(hostname) != 0) return ArrayList()
+            if (NodeNet.isIP(hostname) != 0) return ArrayList()
             val reversed = hostname.split('.').reversed()
             return reversed.slice(offset until reversed.size)
         }
@@ -396,19 +402,17 @@ class Context(
         val state: Boolean get() = !fresh
 
         @Suppress("unused")
-        val fresh: Boolean get() {
-            val method = this.method
-            val s = this.context.status
-
-            // GET or HEAD for weak freshness validation only
-            if ('GET' != method && 'HEAD' != method) return false
-
-            // 2xx or 304 as per rfc2616 14.26
-            if ((s in 200..299) || 304 == s) {
-                return fresh(this.header, this.response.header)
+        val fresh: Boolean get() = when (method) {
+            Method.HEAD, Method.GET -> false
+            else -> {
+                val s = this.context.status
+                // 2xx or 304 as per rfc2616 14.26
+                if ((s in 200..299) || 304 == s) {
+                    fresh(this.header, this.response.header)
+                } else {
+                    false
+                }
             }
-
-            return false
         }
 
         @Suppress("unused")
@@ -526,12 +530,12 @@ class Context(
             }
 
         @Suppress("unused")
-        fun attachment(filename: String) {
-            if (filename.isNotBlank()) {
-                this.type = extname(filename)
-            }
-            this.set("Content-Disposition", contentDisposition(filename))
-        }
+//        fun attachment(filename: String) {
+//            if (filename.isNotBlank()) {
+//                this.type = NodePath.extname(filename)
+//            }
+//            this.set("Content-Disposition", contentDisposition(filename))
+//        }
 
         private fun escapeHtml(string: String): String = string
                 .replace("&", "&amp;")
@@ -543,7 +547,7 @@ class Context(
         @Suppress("unused")
         fun redirect(url: String, alt: String? = null) {
             if (url == "back") {
-                context.get("Referrer") ?: alt ?: "/"
+                context.request.header.get("Referrer") ?: alt ?: "/"
             } else {
                 url
             }.let {
@@ -551,7 +555,7 @@ class Context(
                 if (!Status.redirects.contains(this.status)) {
                     this.status = 302
                 }
-                if (context.accepts("html")) {
+                if (context.request.accepts("html")) {
                     // html
                     escapeHtml(it).let { escaped ->
                         this.type = "text/html; charset=utf-8"
