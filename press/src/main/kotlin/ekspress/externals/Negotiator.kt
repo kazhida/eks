@@ -1,6 +1,19 @@
+/*
+ * ekspress
+ *
+ * Copyright (C) 2018- kazhida@abplus.com
+ * Apache License 2.0
+ */
 package ekspress.externals
 
-class Negotiator {
+/*
+Ported from:
+
+negotiator@0.6.1:
+  version "0.6.1"
+  resolved "https://registry.yarnpkg.com/negotiator/-/negotiator-0.6.1.tgz#2b327184e8992101177b28563fb5e7102acd0ca9"
+
+ */
 
 /*!
  * negotiator
@@ -10,154 +23,78 @@ class Negotiator {
  * MIT Licensed
  */
 
-//'use strict';
-
 /**
- * Cached loaded submodules.
- * @private
+ * negotiator
+ * Copyright(c) 2012 Isaac Z. Schlueter
+ * Copyright(c) 2014 Federico Romero
+ * Copyright(c) 2014-2015 Douglas Christopher Wilson
+ * MIT Licensed
  */
-
-//var modules = Object.create(null);
-
-/**
- * Module exports.
- * @public
- */
-
-//module.exports = Negotiator;
-//module.exports.Negotiator = Negotiator;
 
 /**
  * Create a Negotiator instance from a request.
  * @param {object} request
  * @public
  */
+class Negotiator(private val req: dynamic) {
 
-//function Negotiator(request) {
-//    if (!(this instanceof Negotiator)) {
-//        return new Negotiator(request);
-//    }
-//
-//    this.request = request;
-//}
-
-//Negotiator.prototype.charset = function charset(available) {
+    fun charset(available: Any): PreferredCharsets {
 //    var set = this.charsets(available);
 //    return set && set[0];
-//};
+    }
 
-//Negotiator.prototype.charsets = function charsets(available) {
-//    var preferredCharsets = loadModule('charset').preferredCharsets;
-//    return preferredCharsets(this.request.headers['accept-charset'], available);
-//};
+    fun charsets(available: Any): PreferredCharsets {
+        return PreferredCharsets(req.headers["accept-charset"], available)
+    }
 
-//Negotiator.prototype.encoding = function encoding(available) {
-//    var set = this.encodings(available);
-//    return set && set[0];
-//};
+    class PreferredCharsets(acceptCharset: dynamic, available: Any) {
 
-//Negotiator.prototype.encodings = function encodings(available) {
-//    var preferredEncodings = loadModule('encoding').preferredEncodings;
-//    return preferredEncodings(this.request.headers['accept-encoding'], available);
-//};
+    private val simpleCharsetRegExp = Regex("^\\s*([^\\s;]+)\\s*(?:;(.*))?$")
 
-//Negotiator.prototype.language = function language(available) {
-//    var set = this.languages(available);
-//    return set && set[0];
-//};
-
-//Negotiator.prototype.languages = function languages(available) {
-//    var preferredLanguages = loadModule('language').preferredLanguages;
-//    return preferredLanguages(this.request.headers['accept-language'], available);
-//};
-
-//Negotiator.prototype.mediaType = function mediaType(available) {
-//    var set = this.mediaTypes(available);
-//    return set && set[0];
-//};
-
-//Negotiator.prototype.mediaTypes = function mediaTypes(available) {
-//    var preferredMediaTypes = loadModule('mediaType').preferredMediaTypes;
-//    return preferredMediaTypes(this.request.headers.accept, available);
-//};
-
-// Backwards compatibility
-//Negotiator.prototype.preferredCharset = Negotiator.prototype.charset;
-//Negotiator.prototype.preferredCharsets = Negotiator.prototype.charsets;
-//Negotiator.prototype.preferredEncoding = Negotiator.prototype.encoding;
-//Negotiator.prototype.preferredEncodings = Negotiator.prototype.encodings;
-//Negotiator.prototype.preferredLanguage = Negotiator.prototype.language;
-//Negotiator.prototype.preferredLanguages = Negotiator.prototype.languages;
-//Negotiator.prototype.preferredMediaType = Negotiator.prototype.mediaType;
-//Negotiator.prototype.preferredMediaTypes = Negotiator.prototype.mediaTypes;
-
-/**
- * Load the given module.
- * @private
- */
-
-//function loadModule(moduleName) {
-//    var module = modules[moduleName];
+    private fun parseCharset(s: String, i: Int): Any? {
+        val match = simpleCharsetRegExp.matchEntire(s)
+        if (match == null) {
+            return null
+        } else {
+            val charset = match.groupValues[1]
+            val match2 = match.groupValues[2]
+            if (match2.isNotEmpty()) {
+                val q = match2.split(";").mapIndexed{ i, s ->
+                    val p = s.trim().split("=")
+                    if (p.isNotEmpty() && p[0] == "q") {
+                        p[0].toFloatOrNull()
+                    } else {
+                        null
+                    }
+                }.firstOrNull {
+                    it != null
+                } ?: 1.0f
+            }
+        }
+    }
+//        var charset = match[1];
+//        var q = 1;
+//        if (match[2]) {
+//            var params = match[2].split(';')
+//            for (var i = 0; i < params.length; i ++) {
+//                var p = params[i].trim().split('=');
+//                if (p[0] === 'q') {
+//                    q = parseFloat(p[1]);
+//                    break;
+//                }
+//            }
+//        }
 //
-//    if (module !== undefined) {
-//        return module;
+//        return {
+//            charset: charset,
+//            q: q,
+//            i: i
+//        };
 //    }
-//
-//    // This uses a switch for static require analysis
-//    switch (moduleName) {
-//        case 'charset':
-//        module = require('./lib/charset');
-//        break;
-//        case 'encoding':
-//        module = require('./lib/encoding');
-//        break;
-//        case 'language':
-//        module = require('./lib/language');
-//        break;
-//        case 'mediaType':
-//        module = require('./lib/mediaType');
-//        break;
-//        default:
-//        throw new Error('Cannot find module \'' + moduleName + '\'');
-//    }
-//
-//    // Store to prevent invoking require()
-//    modules[moduleName] = module;
-//
-//    return module;
-//}
 
-    class PreferredCharsets {
-    /**
-     * negotiator
-     * Copyright(c) 2012 Isaac Z. Schlueter
-     * Copyright(c) 2014 Federico Romero
-     * Copyright(c) 2014-2015 Douglas Christopher Wilson
-     * MIT Licensed
-     */
-
-//    'use strict';
-
-    /**
-     * Module exports.
-     * @public
-     */
-
-//    module.exports = preferredCharsets;
-//    module.exports.preferredCharsets = preferredCharsets;
-
-    /**
-     * Module variables.
-     * @private
-     */
-
-//    var simpleCharsetRegExp = /^\s*([^\s;]+)\s*(?:;(.*))?$/;
-
-    /**
-     * Parse the Accept-Charset header.
-     * @private
-     */
-
+    private fun parseAcceptCharset(accept: String) {
+        val accepts = accept.split(",")
+    }
 //    function parseAcceptCharset(accept) {
 //        var accepts = accept.split(',');
 //
@@ -180,29 +117,6 @@ class Negotiator {
      * @private
      */
 
-//    function parseCharset(str, i) {
-//        var match = simpleCharsetRegExp.exec(str);
-//        if (!match) return null;
-//
-//        var charset = match[1];
-//        var q = 1;
-//        if (match[2]) {
-//            var params = match[2].split(';')
-//            for (var i = 0; i < params.length; i ++) {
-//                var p = params[i].trim().split('=');
-//                if (p[0] === 'q') {
-//                    q = parseFloat(p[1]);
-//                    break;
-//                }
-//            }
-//        }
-//
-//        return {
-//            charset: charset,
-//            q: q,
-//            i: i
-//        };
-//    }
 
     /**
      * Get the priority of a charset.
@@ -299,6 +213,17 @@ class Negotiator {
 //    }
 
 }
+
+    //Negotiator.prototype.encoding = function encoding(available) {
+//    var set = this.encodings(available);
+//    return set && set[0];
+//};
+
+//Negotiator.prototype.encodings = function encodings(available) {
+//    var preferredEncodings = loadModule('encoding').preferredEncodings;
+//    return preferredEncodings(this.request.headers['accept-encoding'], available);
+//};
+
 
     class PreferredEncodings {
         /**
@@ -488,6 +413,15 @@ class Negotiator {
 
     }
 
+//Negotiator.prototype.language = function language(available) {
+//    var set = this.languages(available);
+//    return set && set[0];
+//};
+
+//Negotiator.prototype.languages = function languages(available) {
+//    var preferredLanguages = loadModule('language').preferredLanguages;
+//    return preferredLanguages(this.request.headers['accept-language'], available);
+//};
     class PreferredLanguages {
         /**
          * negotiator
@@ -670,6 +604,17 @@ class Negotiator {
 //    }
 
     }
+
+//Negotiator.prototype.mediaTypes = function mediaTypes(available) {
+//    var preferredMediaTypes = loadModule('mediaType').preferredMediaTypes;
+//    return preferredMediaTypes(this.request.headers.accept, available);
+//};
+
+
+//Negotiator.prototype.mediaType = function mediaType(available) {
+//    var set = this.mediaTypes(available);
+//    return set && set[0];
+//};
 
     class PreferredMediaTypes {
         /**
@@ -968,6 +913,7 @@ class Negotiator {
 //    }
 
     }
+
 }
 
 
