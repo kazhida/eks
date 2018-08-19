@@ -11,41 +11,31 @@ package ekspress.externals
  * node.js自体からrequireするようなモジュールを、externalとして宣言する
  */
 
-import ekspress.EmptyCallback
+import ekspress.Procedure
 import kotlin.js.Promise
 
+@Suppress("unused")
 external interface EventEmitter {
-    @Suppress("unused")
     fun on(name: String, fn: Any?): EventEmitter
-    @Suppress("unused")
     fun once(name: String, fn: Any?): EventEmitter
-    @Suppress("unused")
     fun addListener(name: String, fn: Any?): EventEmitter
-    @Suppress("unused")
     fun removeListener(name: String, fn: Any?): EventEmitter
-    @Suppress("unused")
     fun removeAllListeners(name: String): EventEmitter
-    @Suppress("unused")
     val listeners: Array<EventEmitter>?
-    @Suppress("unused")
     fun emit(name: String): Boolean
 }
 
 external interface Http {
-    @Suppress("unused")
     fun createServer(requestListener: ()->NodeCallback): Server
 }
 
 external interface Server {
-    @Suppress("unused")
-    fun listen(port: Int, callback: EmptyCallback?, vararg args: Any?): Server
+    fun listen(port: Int, callback: Procedure?, vararg args: Any?): Server
 }
 
 external fun require(module:String): dynamic
 
-@Suppress("unused")
 val http = require("http").unsafeCast<Http>()
-@Suppress("unused")
 val https = require("https").unsafeCast<Http>()
 fun eventEmitter() = require("events").EventEmitter.unsafeCast<EventEmitter>()
 
@@ -54,14 +44,13 @@ external interface Socket {
     val remoteAddress: String?
 }
 
+@Suppress("unused")
 external interface NodeCallback {
-    @Suppress("unused")
     fun callback(req: dynamic, res: dynamic): Promise<Unit>
 }
 
 @Suppress("unused")
 external interface URL {
-    @Suppress("unused")
     val hostname: String?
 }
 

@@ -6,8 +6,7 @@
  */
 package ekspress
 
-import ekspress.externals.EventEmitter
-import ekspress.externals.eventEmitter
+import ekspress.externals.*
 import kotlin.js.Promise
 
 @Suppress("unused")
@@ -31,13 +30,9 @@ class Application(
     fun subApplication(path: String): Application {
         val layer = stack.firstOrNull { it.path.equals(path) }
         val handler = layer?.handler
-        return if (handler is Application) {
-            handler
-        } else {
-            this.path.concat(Path(path)).let { p ->
-                Application(p).also { app ->
-                    stack.add(Layer(p, null, app))
-                }
+        return handler as? Application ?: this.path.concat(Path(path)).let { p ->
+            Application(p).also { app ->
+                stack.add(Layer(p, null, app))
             }
         }
     }
@@ -65,14 +60,14 @@ class Application(
     val request: Context.Request? = null
     val response: Context.Response? = null
     var proxy = false;
-//    var middleware = [];
-    var subdomainOffset = 2;
-//    var env = process.env.NODE_ENV || 'development';
+//    var middleware = []
+//    var subdomainOffset = 2
+//    var env = process.env.NODE_ENV || 'development'
 
     /**
      * Middlewareとしてのハンドラの再定義
      */
-    override suspend fun handle(context: Context, next: NextProc?) {
+    override suspend fun handle(context: Context, next: NextProc) {
         if (handler != null) {
             handler.handle(context, null)
         } else {
@@ -84,32 +79,30 @@ class Application(
      * Middlewareとしてのハンドラの再定義
      * 呼ばれないはず
      */
-    override suspend fun requestHandle(context: Context, next: NextProc?) {
-        next?.call(context)?.await()
+    override suspend fun requestHandle(context: Context, next: NextProc) {
+        next(context).await()
     }
 
     /**
      * Middlewareとしてのハンドラの再定義
      * 呼ばれないはず
      */
-    override suspend fun errorHandle(context: Context, next: NextProc?) {
-        next?.call(context)?.await()
+    override suspend fun errorHandle(context: Context, next: NextProc) {
+        next(context).await()
     }
 
-    /**
-     * NextProcとしての定義
-     */
-    override fun call(context: Context?): Promise<Unit> {
-        // 自分のハンドラを呼ぶ
-        if (context != null) {
-            async {
-                handle(context, null)
-            }
-        }
-        return Promise.resolve(Unit)
-    }
-
-
+//    /**
+//     * NextProcとしての定義
+//     */
+//    override fun call(context: Context?): Promise<Unit> {
+//        // 自分のハンドラを呼ぶ
+//        if (context != null) {
+//            async {
+//                handle(context, null)
+//            }
+//        }
+//        return Promise.resolve(Unit)
+//    }
 
     private suspend fun dispatch(context: Context) {
         if (stack.isEmpty()) {
@@ -159,8 +152,7 @@ class Application(
 
         override fun call(context: Context?): Promise<Unit> {
             return if (context == null) {
-                // signal to exit route
-                done.call(context)
+                done.call(null)
             } else {
                 val layer = if (stack.isEmpty()) {
                     null
@@ -169,7 +161,7 @@ class Application(
                 }
                 if (layer == null) {
                     done.call(context)
-                } else if (context.req.method != layer.method) {
+                } else if (context.request.method != layer.method || layer.method == null) {
                     // 再帰呼び出し
                     call(context)
                 } else {
@@ -182,71 +174,25 @@ class Application(
         }
     }
 
-        /**
-         * Shorthand for:
-         *
-         *    http.createServer(app.callback()).listen(...)
-         *
-         * @param {Mixed} ...
-         * @return {Server}
-         * @api public
-         */
-
 //        listen(...args) {
 //            debug('listen');
 //            const server = http.createServer(this.callback());
 //            return server.listen(...args);
 //        }
 
-        /**
-         * Return JSON representation.
-         * We only bother showing settings.
-         *
-         * @return {Object}
-         * @api public
-         */
 
-//        toJSON() {
-//            return only(this, [
-//                'subdomainOffset',
-//                'proxy',
-//                'env'
-//            ]);
-//        }
-
-        /**
-         * Inspect implementation.
-         *
-         * @return {Object}
-         * @api public
-         */
-
-//        inspect() {
-//            return this.toJSON();
-//        }
-
-        /**
-         * Use the given middleware `fn`.
-         *
-         * Old-style middleware will be converted.
-         *
-         * @param {Function} fn
-         * @return {Application} self
-         * @api public
-         */
-
-//        use(fn) {
-//            if (typeof fn !== 'function') throw new TypeError('middleware must be a function!');
-//            if (isGeneratorFunction(fn)) {
-//                deprecate('Support for generators will be removed in v3. ' +
-//                        'See the documentation for examples of how to convert old middleware ' +
-//                        'https://github.com/koajs/koa/blob/master/docs/migration.md');
-//                fn = convert(fn);
-//            }
-//            debug('use %s', fn._name || fn.name || '-');
-//            this.middleware.push(fn);
-//            return this;
-//        }
+    fun listen(secure: Boolean, port: Int, vararg args: Any?) {
+        if (secure) {
+            https
+        } else {
+            http
+        }.createServer {
+            {
+                req: dynamic, res: dynamic ->
+                val context = Context(this@Application, req, res)
+            }
+        }.listen(port, null, args)
+    }
 
         /**
          * Return a request handler callback
@@ -282,27 +228,6 @@ class Application(
 //            const handleResponse = () => respond(ctx);
 //            onFinished(res, onerror);
 //            return fnMiddleware(ctx).then(handleResponse).catch(onerror);
-//        }
-
-        /**
-         * Initialize a new context.
-         *
-         * @api private
-         */
-
-//        createContext(req, res) {
-//            const context = Object.create(this.context);
-//            const request = context.request = Object.create(this.request);
-//            const response = context.response = Object.create(this.response);
-//            context.app = request.app = response.app = this;
-//            context.req = request.req = response.req = req;
-//            context.res = request.res = response.res = res;
-//            request.ctx = response.ctx = context;
-//            request.response = response;
-//            response.request = request;
-//            context.originalUrl = request.originalUrl = req.url;
-//            context.state = {};
-//            return context;
 //        }
 
         /**
