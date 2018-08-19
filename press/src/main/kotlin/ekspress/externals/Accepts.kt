@@ -48,7 +48,7 @@ class Accepts(req: dynamic) {
      * @return {Array|String}
      * @public
      */
-    fun languages(args: Array<out String>): Boolean {
+    fun languages(args: Array<out String>): List<String> {
 
 //Accepts.prototype.lang =
 //Accepts.prototype.langs =
@@ -103,20 +103,24 @@ class Accepts(req: dynamic) {
         return false
     }
 
-    fun charsets(args: Array<out String>): Boolean {
-        // todo
-        /**
-         * Return accepted charsets or best fit based on `charsets`.
-         *
-         * Given `Accept-Charset: utf-8, iso-8859-1;q=0.2, utf-7;q=0.5`
-         * an array sorted by quality is returned:
-         *
-         *     ['utf-8', 'utf-7', 'iso-8859-1']
-         *
-         * @param {String|Array} charsets...
-         * @return {String|Array}
-         * @public
-         */
+    /**
+     * Return accepted charsets or best fit based on `charsets`.
+     *
+     * Given `Accept-Charset: utf-8, iso-8859-1;q=0.2, utf-7;q=0.5`
+     * an array sorted by quality is returned:
+     *
+     *     ['utf-8', 'utf-7', 'iso-8859-1']
+     *
+     * @param {String|Array} charsets...
+     * @return {String|Array}
+     * @public
+     */
+    fun charsets(args: Array<out String>): List<String>? {
+        if (args.isEmpty()) {
+            negotiator.charsets(null)
+        } else {
+            this.negotiator.charsets(args).
+        }
 
 //Accepts.prototype.charset =
 //Accepts.prototype.charsets = function (charsets_) {

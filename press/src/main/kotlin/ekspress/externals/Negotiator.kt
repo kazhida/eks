@@ -38,84 +38,56 @@ negotiator@0.6.1:
  */
 class Negotiator(private val req: dynamic) {
 
-    fun charset(available: Any): PreferredCharsets {
+    fun charset(available: List<String>?): String {
+        return charsets(available).
 //    var set = this.charsets(available);
 //    return set && set[0];
     }
 
-    fun charsets(available: Any): PreferredCharsets {
+    fun charsets(available: Any?): PreferredCharsets {
         return PreferredCharsets(req.headers["accept-charset"], available)
     }
 
-    class PreferredCharsets(acceptCharset: dynamic, available: Any) {
+    class PreferredCharsets(acceptCharset: dynamic, available: List<String>?) {
 
-    private val simpleCharsetRegExp = Regex("^\\s*([^\\s;]+)\\s*(?:;(.*))?$")
+        class Charset(
+                val charset: String,
+                val q: Double,
+                val i: Int
+        )
 
-    private fun parseCharset(s: String, i: Int): Any? {
-        val match = simpleCharsetRegExp.matchEntire(s)
-        if (match == null) {
-            return null
-        } else {
-            val charset = match.groupValues[1]
-            val match2 = match.groupValues[2]
-            if (match2.isNotEmpty()) {
-                val q = match2.split(";").mapIndexed{ i, s ->
-                    val p = s.trim().split("=")
-                    if (p.isNotEmpty() && p[0] == "q") {
-                        p[0].toFloatOrNull()
-                    } else {
-                        null
-                    }
-                }.firstOrNull {
-                    it != null
-                } ?: 1.0f
-            }
-        }
-    }
-//        var charset = match[1];
-//        var q = 1;
-//        if (match[2]) {
-//            var params = match[2].split(';')
-//            for (var i = 0; i < params.length; i ++) {
-//                var p = params[i].trim().split('=');
-//                if (p[0] === 'q') {
-//                    q = parseFloat(p[1]);
-//                    break;
-//                }
-//            }
-//        }
-//
-//        return {
-//            charset: charset,
-//            q: q,
-//            i: i
-//        };
-//    }
+        private val simpleCharsetRegExp = Regex("^\\s*([^\\s;]+)\\s*(?:;(.*))?$")
 
-    private fun parseAcceptCharset(accept: String) {
-        val accepts = accept.split(",")
-    }
-//    function parseAcceptCharset(accept) {
-//        var accepts = accept.split(',');
-//
-//        for (var i = 0, j = 0; i < accepts.length; i++) {
-//            var charset = parseCharset(accepts[i].trim(), i);
-//
-//            if (charset) {
-//                accepts[j++] = charset;
-//            }
-//        }
-//
-//        // trim accepts
-//        accepts.length = j;
-//
-//        return accepts;
-//    }
 
-    /**
-     * Parse a charset from the Accept-Charset header.
-     * @private
-     */
+
+        private fun parseAcceptCharset(accept: String): List<Charset> =
+                accept.split(",").mapIndexedNotNull { index, s ->
+                    parseCharset(s.trim(), index)
+                }
+
+        private fun parseCharset(string: String, index: Int): Charset? =
+                simpleCharsetRegExp.matchEntire(string)?.let { match ->
+                    val charset = match.groupValues[1]
+                    match.groupValues[2].split(";").mapIndexed { i, s ->
+                        val p = s.trim().split("=")
+                        if (p[0] == "q") {
+                            try {
+                                Charset(
+                                        charset,
+                                        p[1].toDouble(),
+                                        index
+                                )
+                            } catch (e: Exception) {
+                                null
+                            }
+                        } else {
+                            null
+                        }
+                    }.firstOrNull {
+                        it != null
+                    } ?: Charset(charset, 1.0, index)
+                }
+
 
 
     /**
@@ -214,7 +186,7 @@ class Negotiator(private val req: dynamic) {
 
 }
 
-    //Negotiator.prototype.encoding = function encoding(available) {
+//Negotiator.prototype.encoding = function encoding(available) {
 //    var set = this.encodings(available);
 //    return set && set[0];
 //};

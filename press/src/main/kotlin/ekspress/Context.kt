@@ -178,7 +178,7 @@ class Context(
         @Suppress("unused")
         val originalUrl: String? = req.url?.unsafeCast<String?>()
         @Suppress("unused")
-        private val accept by lazy { Accepts() }
+        private val accept by lazy { Accepts(req) }
         @Suppress("unused")
         private var _querycache: dynamic = null
         //private var memoizedURL: URL? = null
