@@ -30,27 +30,23 @@ enum class Method {
  * Expressでのミドルウェアに相当する関数型
  *
  * @args context コンテキスト
- * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
+ * @args next 次に実行するMiddlewareに処理を渡すための関数
  */
-typealias Handler = suspend (context: Context, next: NextProc?)->Unit
+typealias Handler = suspend (context: Context, next: NextProc)->Unit
 
 /**
  * express.jsやkoa.jsでのnext()は、クロージャなので、
  * Application内のクラスで代用している
  * ここでは、そのインターフェースだけ決めている
+ * @args context コンテキスト
+ * @return プロミス（なので、await()を呼ぶ必要がある）
  */
-interface NextProc {
-    /**
-     * @args context コンテキスト
-     * @return プロミス（なので、await()を呼ぶ必要がある）
-     */
-    fun call(context: Context?): Promise<Unit>
-}
+typealias NextProc = (context: Context?)->Promise<Unit>
 
 /**
  * 引数も返値も持たないコールバック関数型
  */
-typealias EmptyCallback = ()->Unit
+typealias Procedure = ()->Unit
 
 /**
  * 非同期な処理をを行う関数
@@ -93,7 +89,7 @@ interface Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    suspend fun handle(context: Context, next: NextProc?) {
+    suspend fun handle(context: Context, next: NextProc) {
         if (context.hasError) {
             errorHandle(context, next)
         } else {
@@ -107,7 +103,7 @@ interface Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    suspend fun requestHandle(context: Context, next: NextProc?)
+    suspend fun requestHandle(context: Context, next: NextProc)
 
     /**
      * エラー・ハンドラ
@@ -115,7 +111,7 @@ interface Middleware {
      * @args context コンテキスト
      * @args next 次に実行するMiddlewareに処理を渡すための管理オブジェクト
      */
-    suspend fun errorHandle(context: Context, next: NextProc?)
+    suspend fun errorHandle(context: Context, next: NextProc)
 
     /**
      * エラーはスルーする実装になっているので、
@@ -124,8 +120,8 @@ interface Middleware {
      */
     @Suppress("unused")
     interface OnRequest : Middleware {
-        override suspend fun  errorHandle(context: Context, next: NextProc?) {
-            next?.call(context)?.await()
+        override suspend fun  errorHandle(context: Context, next: NextProc) {
+            next(context).await()
         }
 
         /**
@@ -134,7 +130,7 @@ interface Middleware {
          * @args handler 正常時の処理を行う関数
          */
         class Instant(private val handler: Handler) : OnRequest {
-            override suspend fun requestHandle(context: Context, next: NextProc?) = handler(context, next)
+            override suspend fun requestHandle(context: Context, next: NextProc) = handler(context, next)
         }
     }
 
@@ -144,8 +140,8 @@ interface Middleware {
      */
     @Suppress("unused")
     interface OnError : Middleware {
-        override suspend fun requestHandle(context: Context, next: NextProc?) {
-            next?.call(context)?.await()
+        override suspend fun requestHandle(context: Context, next: NextProc) {
+            next(context).await()
         }
 
         /**
@@ -154,7 +150,7 @@ interface Middleware {
          * @args handler エラー時の処理を行う関数
          */
         class Instant(private val handler: Handler) : OnError {
-            override suspend fun errorHandle(context: Context, next: NextProc?) = handler(context, next)
+            override suspend fun errorHandle(context: Context, next: NextProc) = handler(context, next)
         }
     }
 
@@ -164,23 +160,19 @@ interface Middleware {
     @Suppress("unused")
     class Interceptor(private val handler: (context: Context)->Unit) : Middleware {
 
-        override suspend fun handle(context: Context, next: NextProc?) {
-            if (next != null) {
-                async {
-                    handler(context)
-                }
-                next.call(context).await()
-            } else {
+        override suspend fun handle(context: Context, next: NextProc) {
+            async {
                 handler(context)
             }
+            next(context).await()
         }
 
-        override suspend fun requestHandle(context: Context, next: NextProc?) {
-            handle(context, next)
+        override suspend fun requestHandle(context: Context, next: NextProc) {
+            next(context).await()
         }
 
-        override suspend fun errorHandle(context: Context, next: NextProc?) {
-            handle(context, next)
+        override suspend fun errorHandle(context: Context, next: NextProc) {
+            next(context).await()
         }
     }
 }
