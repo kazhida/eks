@@ -28,6 +28,8 @@ class Context(
     val request = Request(app, this, req, res)
     val response = Response(app, this, req, res)
     var status: Int = 404
+    var body: Any? = null  // todo ちゃんと実装
+    var stoped: Boolean = false
 
     /**
      * エラーが起きていたらtrue
@@ -51,6 +53,17 @@ class Context(
      */
     fun setError(err: Exception) {
         this.err = err
+    }
+
+    fun stop(): Context = apply {
+        stoped = true
+    }
+
+    val isEmptyStatus: Boolean get() = when (status) {
+        204,
+        205,
+        304 -> true
+        else -> false
     }
 
     @Suppress("unused")
@@ -104,8 +117,7 @@ class Context(
      * @param {Error} err
      * @api private
      */
-    @Suppress("unused")
-    fun onerror(err: Exception?) {
+    fun onError(err: Error?) {
         // don't do anything if there is no error.
         // this allows you to pass `this.onerror`
         // to node-style callbacks.

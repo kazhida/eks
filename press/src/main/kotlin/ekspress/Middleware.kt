@@ -41,7 +41,7 @@ typealias Handler = suspend (context: Context, next: NextProc)->Unit
  * @args context コンテキスト
  * @return プロミス（なので、await()を呼ぶ必要がある）
  */
-typealias NextProc = (context: Context?)->Promise<Unit>
+typealias NextProc = (context: Context)->Promise<Unit>
 
 /**
  * 引数も返値も持たないコールバック関数型

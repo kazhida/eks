@@ -22,6 +22,7 @@ external interface EventEmitter {
     fun removeListener(name: String, fn: Any?): EventEmitter
     fun removeAllListeners(name: String): EventEmitter
     val listeners: Array<EventEmitter>?
+    fun listenerCount(event: String): Int
     fun emit(name: String): Boolean
 }
 
@@ -44,10 +45,8 @@ external interface Socket {
     val remoteAddress: String?
 }
 
-@Suppress("unused")
-external interface NodeCallback {
-    fun callback(req: dynamic, res: dynamic): Promise<Unit>
-}
+typealias NodeCallback = (req: dynamic, res: dynamic)->Promise<Unit>
+
 
 @Suppress("unused")
 external interface URL {
@@ -87,6 +86,7 @@ object NodeNet {
     val isIP = require("net").isIP.unsafeCast<(hostname: String)->Int>()
 }
 
+@Suppress("unused")
 object NodePath {
     private val path = require("path")
     val extname = path.extname.unsafeCast<(filename: String)->String>()
