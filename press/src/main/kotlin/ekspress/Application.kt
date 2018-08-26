@@ -6,13 +6,16 @@
  */
 package ekspress
 
-import ekspress.externals.*
+import ekspress.externals.EventEmitter
+import ekspress.externals.eventEmitter
+import ekspress.externals.http
+import ekspress.externals.https
 import kotlin.js.Promise
 
 @Suppress("unused")
 class Application(
-        private val path: Path = Path("/"),         // アプリケーションが対応するパス
-        private val parent: Application? = null     // 上位のアプリケーション
+        private val path: Path = Path(path = "/"),      // アプリケーションが対応するパス
+        private val parent: Application? = null         // 上位のアプリケーション
 ) : Middleware, EventEmitter by eventEmitter() {
     /*-------------*/
     /*     API     */
@@ -67,10 +70,6 @@ class Application(
     /*-------------*/
 
     private val stack: MutableList<Layer> = ArrayList()
-//    var proxy = false;
-//    var middleware = []
-//    var subdomainOffset = 2
-//    var env = process.env.NODE_ENV || 'development'
 
     /**
      * Middlewareとしてのハンドラの再定義
@@ -83,38 +82,41 @@ class Application(
             // allow bypassing koa
             //if (false === context.respond) return;
 
-            if (context.res.writable as Boolean) {
-                if (context.isEmptyStatus) {
-                    context.body = null
-                    context.res.end()
-                } else if (context.request.method == Method.HEAD) {
-                    // todo ちゃんと実装
-//                    if (!res.headersSent && isJSON(body)) {
-//                        ctx.length = Buffer.byteLength(JSON.stringify(body));
-//                    }
-                    context.res.end()
-                } else if (context.body == null) {
-                    // todo ちゃんと実装
-                    val body = null
-//                    body = ctx.message || String(code);
-//                    if (!res.headersSent) {
-//                        ctx.type = 'text';
-//                        ctx.length = Buffer.byteLength(body);
-//                    }
-                    context.res.end(body)
-                } else {
-                    // todo ちゃんと実装
-                    val body = null
-//                    if (Buffer.isBuffer(body)) return res.end(body);
-//                    if ('string' == typeof body) return res.end(body);
-//                    if (body instanceof Stream) return body.pipe(res);
-//
-//                    // body: json
-//                    body = JSON.stringify(body);
-//                    if (!res.headersSent) {
-//                        ctx.length = Buffer.byteLength(body);
-//                    }
-                    context.res.end(body)
+            if (context.response.writable) {
+                when {
+                    context.isEmptyStatus -> {
+                        context.response.body = null
+                        context.response.end()
+                    }
+                    context.request.method == Method.HEAD -> // todo ちゃんと実装
+                        //                    if (!res.headersSent && isJSON(body)) {
+                        //                        ctx.length = Buffer.byteLength(JSON.stringify(body));
+                        //                    }
+                        context.response.end()
+                    context.response.body == null -> {
+                        // todo ちゃんと実装
+                        val body = null
+                        //                    body = ctx.message || String(code);
+                        //                    if (!res.headersSent) {
+                        //                        ctx.type = 'text';
+                        //                        ctx.length = Buffer.byteLength(body);
+                        //                    }
+                        context.response.end(body)
+                    }
+                    else -> {
+                        // todo ちゃんと実装
+                        val body = null
+                        //                    if (Buffer.isBuffer(body)) return res.end(body);
+                        //                    if ('string' == typeof body) return res.end(body);
+                        //                    if (body instanceof Stream) return body.pipe(res);
+                        //
+                        //                    // body: json
+                        //                    body = JSON.stringify(body);
+                        //                    if (!res.headersSent) {
+                        //                        ctx.length = Buffer.byteLength(body);
+                        //                    }
+                        context.response.end(body)
+                    }
                 }
             }
         }
@@ -125,7 +127,7 @@ class Application(
      * 呼ばれないはず
      */
     override suspend fun requestHandle(context: Context, next: NextProc) {
-        next(context).await()
+        next.call(context).await()
     }
 
     /**
@@ -133,64 +135,31 @@ class Application(
      * 呼ばれないはず
      */
     override suspend fun errorHandle(context: Context, next: NextProc) {
-        next(context).await()
+        next.call(context).await()
     }
 
     private fun callback(): (res: dynamic, req: dynamic)->Promise<Unit> {
 
-        if (listenerCount("error") == 0) on("error") { err: Error? -> onError(err) }
+        if (listenerCount("error") == 0) {
+            on("error") { err: Error? -> onError(err) }
+        }
 
-        val handleRequest = { res: dynamic, req: dynamic ->
-            val context = Context(this, req, res).apply {
-                res.statusCode = 404 // todo 必要？
-            }
-            // todo ちゃんと実装
-//            onFinished(res) {
-//                err -> context.onError(err)
-//            }
-            async {
-                dispatch(context)
-            }
-        };
+        return { res: dynamic, req: dynamic -> dispatch(res, req) }
+    }
 
-        return handleRequest;
+    private fun dispatch(res: dynamic, req: dynamic): Promise<Unit> {
+        val context = Context(this, req, res)
+        val stack2 = ArrayList<Layer>().apply { addAll(stack) }
+        return Dispatcher(this, stack2).call(context)
     }
 
     private fun onError(err: Error?) {
         if (err == null) {
-            console.error("err is null at Application#onError."))
+            console.error("err is null at Application#onError.")
         } else {
-            console.error("err = {$err} at Application#onError"))
+            console.error("err = {$err} at Application#onError")
         }
     }
-
-    private suspend fun dispatch(context: Context): Promise<Unit> {
-        if (stack.isEmpty() || context.stoped) {
-            val dummyNext = {
-                _: Context? -> Promise.resolve(Unit)
-            }
-            // 自分のハンドラを呼ぶ
-            handle(context, dummyNext)
-        } else {
-            next(context)
-        }
-    }
-
-    private suspend fun next(context: Context): Promise<Unit> {
-        val layer = stack.removeAt(0)
-        if (context.request.method != layer.method || layer.method == null) {
-            // 再帰呼び出し
-            layer.handler.handle(context, next)
-            dispatch(context, stack)
-        } else {
-            // 間接的に再帰呼び出し
-            async {
-                layer.handle(context, this)
-            }
-        }
-    }
-
-
 
     /**
      * ミドルウェアとパスやメソッドをまとめて管理するためのクラス
@@ -203,59 +172,148 @@ class Application(
         suspend fun handle(context: Context, next: NextProc) {
             try {
                 handler.handle(context, next)
-            } catch (e: Exception) {
+            } catch (e: Error) {
                 context.setError(e)
                 handler.handle(context, next)
             }
         }
 
-        @Suppress("unused")
         fun match(context: Context, path: Path, method: Method?): Boolean {
             val params = this.path.matchParams(path)
 
             return if (params == null) {
                 false
             } else if (this.method == null || this.method == method) {
-                context.req.params.add(params)
+                context.request.addParams(params)
                 true
             } else {
                 false
             }
         }
     }
+    /**
+     * PATHを扱うためのユーティリティクラス
+     *
+     * @args src PATHを"/"で区切った文字列リスト
+     */
+    class Path private constructor(src: List<String>) {
+
+        companion object {
+            /**
+             * 文字列のPATHを"/"区切りで分離したリストを作る関数
+             * 空欄は除去される
+             */
+            private fun split(path: String): List<String> = path.split("/").filter { it.isNotBlank() }
+        }
+
+        /**
+         * こちらが普通に使用されるコンストラクタ
+         *
+         * @args path PATH文字列
+         */
+        constructor(path: String) : this(split(path))
+
+        /**
+         * ディレクトリ階層
+         */
+        private val directories: List<String> = src
+
+        /**
+         * リストの先頭を返すプロパティ
+         * 空の場合はnullを返す
+         */
+        val head: String? get() = if (directories.isEmpty()) null else directories[0]
+
+        /**
+         * リストの先頭を除いた残りを生成して返すプロパティ
+         */
+        val rest: Path get() = Path(directories.slice(1..directories.size))
+
+        /**
+         * 渡されたPATH文字列との先頭一致を判別するメソッド
+         *
+         * @args path PATH文字列
+         * @return 先頭一致していればtrue
+         */
+        fun contains(path: String): Boolean = contains(Path(path))
+
+        /**
+         * 渡されたPATHとの先頭一致を判別するメソッド
+         *
+         * @args path PATHを"/"で分離したリスト
+         * @return 先頭一致していればtrue
+         */
+        fun contains(path: Path): Boolean {
+            if (path.directories.size > this.directories.size) {
+                return false
+            } else {
+                path.directories.forEachIndexed { index, dir ->
+                    if (dir != directories[index]) {
+                        return false
+                    }
+                }
+            }
+            return true
+        }
+
+        /**
+         * 自分自身に渡されたパスを連結した新しいPathを返すメソッド
+         *
+         * @args path 末尾に連結するリスト
+         * @return 連結された新しいリスト
+         */
+        fun concat(path: Path): Path {
+            val cat = ArrayList<String>().apply {
+                addAll(directories)
+                addAll(path.directories)
+            }
+            return Path(cat)
+        }
+
+        /**
+         * 渡されたpathとの一致と、パラメータの収集を行うメソッド
+         *
+         * @args path 判定の大詔となるPATH
+         * @return 一致していなければnull、一致していたときはパラメータのmapを返す
+         */
+        fun matchParams(path: Path): Map<String, String>? {
+            return if (path.directories.size != directories.size) {
+                null
+            } else {
+                HashMap<String, String>().apply {
+                    directories.forEachIndexed { index, d ->
+                        val s = path.directories[index]
+                        if (d.startsWith(":") && d.length > 1) {
+                            val p = d.substring(1)
+                            put(p, s)
+                        } else if (s != d) {
+                            return null
+                        }
+                    }
+                }
+            }
+        }
+
+        private val pathString: String by lazy { directories.joinToString("/") }
+
+        fun equals(other: String): Boolean = pathString == other
+    }
 
     /**
      * stackに積まれたミドルウェアを連鎖させるためのクラス
      */
-    private class Dispatcher(val app: Application, val stack: ArrayList<Layer>) {
+    private class Dispatcher(
+            private val app: Application,
+            private val stack: ArrayList<Layer>
+    ) : NextProc {
 
-        suspend fun dispatch(context: Context) {
-            if (stack.isEmpty()) {
-                val dummyNext = {
-                    _: Context? -> Promise.resolve(Unit)
-                }
-                // 自分のハンドラを呼ぶ
-                app.handle(context, dummyNext)
-            } else {
-                call(context)
-            }
-        }
-
-        suspend fun call(context: Context): Promise<Unit> {
-            val layer = if (stack.isEmpty()) {
-                dispatch(context)
-            } else {
-                stack.removeAt(0)
-            }
-            if (layer == null) {
-                done.call(context)
-            } else if (context.request.method != layer.method || layer.method == null) {
-                // 再帰呼び出し
-                call(context)
-            } else {
-                // 間接的に再帰呼び出し
-                async {
-                    layer.handle(context, this)
+        override fun call(context: Context): Promise<Unit> {
+            val layer = if (stack.isEmpty()) null else stack.removeAt(0)
+            return async {
+                if (layer == null) {
+                    app.handle(context, this)
+                } else {
+                    layer.handler.handle(context, this)
                 }
             }
         }

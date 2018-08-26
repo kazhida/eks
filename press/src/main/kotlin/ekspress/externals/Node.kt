@@ -16,14 +16,14 @@ import kotlin.js.Promise
 
 @Suppress("unused")
 external interface EventEmitter {
-    fun on(name: String, fn: Any?): EventEmitter
-    fun once(name: String, fn: Any?): EventEmitter
-    fun addListener(name: String, fn: Any?): EventEmitter
-    fun removeListener(name: String, fn: Any?): EventEmitter
+    fun on(name: String, fn: dynamic): EventEmitter
+    fun once(name: String, fn: dynamic): EventEmitter
+    fun addListener(name: String, fn: dynamic): EventEmitter
+    fun removeListener(name: String, fn: dynamic): EventEmitter
     fun removeAllListeners(name: String): EventEmitter
-    val listeners: Array<EventEmitter>?
+    val listeners: Array<EventEmitter?>?
     fun listenerCount(event: String): Int
-    fun emit(name: String): Boolean
+    fun emit(name: String, vararg args: dynamic): Boolean
 }
 
 external interface Http {
@@ -47,11 +47,6 @@ external interface Socket {
 
 typealias NodeCallback = (req: dynamic, res: dynamic)->Promise<Unit>
 
-
-@Suppress("unused")
-external interface URL {
-    val hostname: String?
-}
 
 external interface Url {
     var _raw: String?

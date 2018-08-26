@@ -38,10 +38,14 @@ typealias Handler = suspend (context: Context, next: NextProc)->Unit
  * express.jsやkoa.jsでのnext()は、クロージャなので、
  * Application内のクラスで代用している
  * ここでは、そのインターフェースだけ決めている
- * @args context コンテキスト
- * @return プロミス（なので、await()を呼ぶ必要がある）
  */
-typealias NextProc = (context: Context)->Promise<Unit>
+interface NextProc {
+    /**
+     * @args context コンテキスト
+     * @return プロミス（なので、await()を呼ぶ必要がある）
+     */
+    fun call(context: Context): Promise<Unit>
+}
 
 /**
  * 引数も返値も持たないコールバック関数型
@@ -121,7 +125,7 @@ interface Middleware {
     @Suppress("unused")
     interface OnRequest : Middleware {
         override suspend fun  errorHandle(context: Context, next: NextProc) {
-            next(context).await()
+            next.call(context).await()
         }
 
         /**
@@ -141,7 +145,7 @@ interface Middleware {
     @Suppress("unused")
     interface OnError : Middleware {
         override suspend fun requestHandle(context: Context, next: NextProc) {
-            next(context).await()
+            next.call(context).await()
         }
 
         /**
@@ -164,15 +168,15 @@ interface Middleware {
             async {
                 handler(context)
             }
-            next(context).await()
+            next.call(context).await()
         }
 
         override suspend fun requestHandle(context: Context, next: NextProc) {
-            next(context).await()
+            next.call(context).await()
         }
 
         override suspend fun errorHandle(context: Context, next: NextProc) {
-            next(context).await()
+            next.call(context).await()
         }
     }
 }
