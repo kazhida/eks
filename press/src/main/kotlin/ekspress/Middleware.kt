@@ -63,9 +63,11 @@ interface Middleware {
 
     /**
      * ロギングなどのようにコンテキストを変更しないミドルウェアを生成するクラス
+     *
+     * @args interceptor 処理を行う関数
      */
     @Suppress("Unused")
-    class Through(private val intercept: (Context)->Unit) : Middleware {
-        override fun handle(context: Context): Context = context.also { intercept(it) }
+    class Through(private val interceptor: (Context)->Unit) : Middleware {
+        override fun handle(context: Context): Context = context.also { interceptor(it) }
     }
 }

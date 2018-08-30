@@ -28,53 +28,81 @@ data class Context(
                 res: dynamic
         ): Context = Context(app, Request(req), Response(res))
     }
-//
-    fun addedParams(params: Map<String, String>) = Context(
-        app = this.app,
-        request = this.request.apply { req.params.add(params) },
-        response = this.response,
-        isStopped = this.isStopped
+
+    /**
+     * リクエストにパラメータを追加
+     *
+     * @args params 追加するパラメータ
+     */
+    fun addedParams(params: Map<String, String>) = copy(
+        request = this.request.copy().apply {
+            req.params.add(params).unsafeCast<Unit>()
+        }
     )
 
+    /**
+     * 空のレスポンス
+     * （Application.ktでのみ使用する）
+     */
     internal fun endAsEmpty() = copy(
-            response = response.apply {
+            response = response.copy().apply {
                 res.body = null
-                res.end()
+                res.end().unsafeCast<Unit>()
             },
             isStopped = true
     )
 
+    /**
+     * HEADメソッドに対応するレスポンス
+     * （Application.ktでのみ使用する）
+     */
     internal fun endAsHead() = copy(
-            response = response.apply {
-//                        if (!res.headersSent && isJSON(body)) {
-//                            ctx.length = Buffer.byteLength(JSON.stringify(body));
-//                        }
-                res.end()
+            response = response.copy().apply {
+//                if (!res.headersSent && isJSON(body)) {
+//                    ctx.length = Buffer.byteLength(JSON.stringify(body));
+//                }
+                res.end().unsafeCast<Unit>()
             },
             isStopped = true
     )
 
+    /**
+     * ステータスコードをボディにするレスポンス
+     * ボディが空のときに使用
+     * （Application.ktでのみ使用する）
+     */
     internal fun endAsCode() = copy(
-            response = response.apply {
-                val body = statusCode.toString()
+            response = response.copy().apply {
+                val body = res.statusCode.toString()
                 if (!headersSent) {
-                    type = "text"
-                    length = body.length
+                    res.type = "text"
+                    res.length = body.length
                 }
-                end(body)
+                res.end(body).unsafeCast<Unit>()
             },
             isStopped = true
     )
 
+    /**
+     * いわゆるNotFoundのレスポンス
+     * （Application.ktでのみ使用する）
+     */
     internal fun endAsNotFound() = copy(
-            response = this.response.apply {
+            response = this.response.copy().apply {
                 res.status = 404
             },
             isStopped = true
     )
 
+    /**
+     * 通常のレスポンス
+     * （Application.ktでのみ使用する）
+     */
     internal fun endAsNormally() = copy(
-            // todo ちゃんと実装
+            response = this.response.copy().apply {
+                // todo: bodyがStreamのときのことは考慮していない
+                res.length = res.body.length
+            },
             isStopped = true
     )
 
@@ -150,12 +178,17 @@ data class Context(
 
     /**
      * リクエスト
+     *
+     * @args req Node.jsのリクエスト
      */
     data class Request(
             val req: dynamic
     ) {
         private val methodAsString: String? get() = req.method as String?
 
+        /**
+         * メソッド（enum class Methodに変換）
+         */
         val method: Method? get() = when (methodAsString?.toUpperCase()) {
             "HEAD" -> Method.HEAD
             "GET" -> Method.GET
@@ -166,11 +199,19 @@ data class Context(
         }
     }
 
+    /**
+     * レスポンス
+     *
+     * @args res Node.jsのレスポンス
+     */
     data class Response(
             val res: dynamic
     ) {
-        val writable: Boolean = res.writeble
+        val writable: Boolean = res.writeble.unsafeCast<Boolean>()
 
+        /**
+         * コンテントが空のステータスコードならtrue
+         */
         val isEmptyStatus: Boolean = when (res.status) {
             204,
             205,
@@ -182,40 +223,19 @@ data class Context(
         private val headerSentAsString: String? get() = res.headerSent as? String
         private val headerSentAsInt: Int? get() = res.headerSent as? Int
 
+        /**
+         * headerSentのラッパー
+         */
         val headersSent: Boolean
             get() = headerSentAsBoolean ?:
                     headerSentAsString?.toLowerCase()?.equals("true") ?:
                     ((headerSentAsInt ?: 0) > 0)
 
-        var type: String?
-            get() = res.type
-            set(value) { res.type = value }
-
-        var statusCode: Int
-            get() = res.status.toString().toInt()
-            set(value) {
-                res.status = value
-            }
-
-        var body: String?
-            get() = res.body
-            set(value) { res.body = value }
-
-        var length: Int
-            get() = res.length
-            set(value) { res.length = value}
-
-        fun end(body: String? = null) {
-            if (body == null) {
-                this.body = body
-            }
-            res.end()
-        }
-
-        fun endAsEmpty() {
-            body = null
-            res.end()
-        }
+        /**
+         * bodyのラッパー
+         *
+         * fixme bodyがStreamの場合もある
+         */
+        val body: String? get() = res.body.unsafeCast<String?>()
     }
-
 }

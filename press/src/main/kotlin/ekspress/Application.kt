@@ -18,6 +18,7 @@ class Application(
         private val path: Path = Path(path = "/"),      // アプリケーションが対応するパス
         private val parent: Application? = null         // 上位のアプリケーション
 ) : Middleware, EventEmitter by eventEmitter() {
+
     /*-------------*/
     /*     API     */
     /*-------------*/
@@ -75,12 +76,16 @@ class Application(
     /**
      * Middlewareとしてのハンドラの再定義
      * stackを使い果たしたか中断するかされたときに呼ばれる
+     *
+     * @args context コンテクスト
      */
     override fun handle(context: Context): Context {
         return when {
-            parent != null -> // 親アプリがあるときはそれに返す
+            parent != null ->
+                // 親アプリがあるときはそれに返す
                 context.copy(isStopped = false)
-            context.response.writable -> // ここで、それなりのレスポンスを返す
+            context.response.writable ->
+                // ここで、それなりのレスポンスを返す
                 when {
                     context.response.isEmptyStatus -> context.endAsEmpty()
                     context.request.method == Method.HEAD -> context.endAsHead()
@@ -91,6 +96,13 @@ class Application(
         }
     }
 
+    /**
+     * listenで使うコールバック
+     *
+     * @args req Node.jsのリクエスト
+     * @args res Node.jsのレスポンス
+     * @return コンテクストを返すプロミス
+     */
     private fun callback(): (res: dynamic, req: dynamic)->Promise<Context> {
         if (listenerCount("error") == 0) {
             on("error") { err: Throwable -> onError(err) }
@@ -100,6 +112,12 @@ class Application(
         }
     }
 
+    /**
+     * ミドルウェアの処理
+     *
+     * @args originalContext 最初のコンテクスト
+     * @return コンテクストを返すプロミス
+     */
     private fun dispatch(originalContext: Context): Promise<Context> {
         return Promise { resolve, reject ->
             try {
@@ -123,31 +141,23 @@ class Application(
             }
         }
 
-
-
-//        return Promise<Context>.then { originalContext ->
-//            stack.forEach { layer ->
-//                handled = true
-//                val params = layer.path.matchParams(path)
-//                if (params != null) {
-//                    context = context.addedParams(params)
-//                    context = layer.handler.handle(context)
-//                }
-//            }
-//            if (!handled) {
-//                onNotFound(context)
-//            }
-//        }.catch {
-//            onError(e)
-//        }
     }
 
+    /**
+     * Node.jsレベルのエラーハンドラ
+     *
+     * @args err エラー
+     */
     private fun onError(err: Throwable) {
         console.error("err = {$err} at Application#onError")
     }
 
     /**
      * ミドルウェアとパスやメソッドをまとめて管理するためのクラス
+     *
+     * @args path ミドルウェアに対応するエンドポイント
+     * @args method 処理するメソッド、nullの場合はすべてを処理する
+     * @args handler ミドルウェア
      */
     private class Layer(
             val path: Path,
