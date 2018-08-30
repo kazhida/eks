@@ -10,6 +10,7 @@ import ekspress.externals.EventEmitter
 import ekspress.externals.eventEmitter
 import ekspress.externals.http
 import ekspress.externals.https
+import kotlin.coroutines.experimental.*
 import kotlin.js.Promise
 
 @Suppress("unused")
@@ -75,90 +76,109 @@ class Application(
      * Middlewareとしてのハンドラの再定義
      * stackを使い果たしたか中断するかされたときに呼ばれる
      */
-    override suspend fun handle(context: Context, next: NextProc) {
-        if (parent == null) {
-            context.stoped = false
+    override fun handle(context: Context): Context {
+        return if (parent != null) {
+            context.copy(isStopped = false)
+//        } else {
+//
+//            // allow bypassing koa
+//            //if (false === context.respond) return;
+//
+//            if (context.response.writable) {
+//                when {
+//                    context.isEmptyStatus -> {
+//                        context.response.body = null
+//                        context.response.end()
+//                    }
+//                    context.request.method == Method.HEAD -> // todo ちゃんと実装
+//                        //                    if (!res.headersSent && isJSON(body)) {
+//                        //                        ctx.length = Buffer.byteLength(JSON.stringify(body));
+//                        //                    }
+//                        context.response.end()
+//                    context.response.body == null -> {
+//                        // todo ちゃんと実装
+//                        val body = null
+//                        //                    body = ctx.message || String(code);
+//                        //                    if (!res.headersSent) {
+//                        //                        ctx.type = 'text';
+//                        //                        ctx.length = Buffer.byteLength(body);
+//                        //                    }
+//                        context.response.end(body)
+//                    }
+//                    else -> {
+//                        // todo ちゃんと実装
+//                        val body = null
+//                        //                    if (Buffer.isBuffer(body)) return res.end(body);
+//                        //                    if ('string' == typeof body) return res.end(body);
+//                        //                    if (body instanceof Stream) return body.pipe(res);
+//                        //
+//                        //                    // body: json
+//                        //                    body = JSON.stringify(body);
+//                        //                    if (!res.headersSent) {
+//                        //                        ctx.length = Buffer.byteLength(body);
+//                        //                    }
+//                        context.response.end(body)
+//                    }
+//                }
+//            }
+        } else {
+            context
+        }
+    }
 
-            // allow bypassing koa
-            //if (false === context.respond) return;
+    private fun callback(): (res: dynamic, req: dynamic)->Promise<Context> {
+        if (listenerCount("error") == 0) {
+            on("error") { err: Throwable -> onError(err) }
+        }
+        return { res: dynamic, req: dynamic ->
+            dispatch(Context.create(this, res, req))
+        }
+    }
 
-            if (context.response.writable) {
-                when {
-                    context.isEmptyStatus -> {
-                        context.response.body = null
-                        context.response.end()
+    private fun dispatch(originalContext: Context): Promise<Context> {
+        return Promise { resolve, reject ->
+            try {
+                var handled = false
+                var context = originalContext
+                for (layer in stack) {
+                    handled = true
+                    val params = layer.path.matchParams(path)
+                    if (params != null) {
+                        context = layer.handler.handle(context.addedParams(params))
                     }
-                    context.request.method == Method.HEAD -> // todo ちゃんと実装
-                        //                    if (!res.headersSent && isJSON(body)) {
-                        //                        ctx.length = Buffer.byteLength(JSON.stringify(body));
-                        //                    }
-                        context.response.end()
-                    context.response.body == null -> {
-                        // todo ちゃんと実装
-                        val body = null
-                        //                    body = ctx.message || String(code);
-                        //                    if (!res.headersSent) {
-                        //                        ctx.type = 'text';
-                        //                        ctx.length = Buffer.byteLength(body);
-                        //                    }
-                        context.response.end(body)
-                    }
-                    else -> {
-                        // todo ちゃんと実装
-                        val body = null
-                        //                    if (Buffer.isBuffer(body)) return res.end(body);
-                        //                    if ('string' == typeof body) return res.end(body);
-                        //                    if (body instanceof Stream) return body.pipe(res);
-                        //
-                        //                    // body: json
-                        //                    body = JSON.stringify(body);
-                        //                    if (!res.headersSent) {
-                        //                        ctx.length = Buffer.byteLength(body);
-                        //                    }
-                        context.response.end(body)
-                    }
+                    if (context.isStopped) break
                 }
+                if (handled) {
+                    resolve(context)
+                } else {
+                    resolve(context.notFound())
+                }
+            } catch (e: Throwable) {
+                reject(e)
             }
         }
+
+
+
+//        return Promise<Context>.then { originalContext ->
+//            stack.forEach { layer ->
+//                handled = true
+//                val params = layer.path.matchParams(path)
+//                if (params != null) {
+//                    context = context.addedParams(params)
+//                    context = layer.handler.handle(context)
+//                }
+//            }
+//            if (!handled) {
+//                onNotFound(context)
+//            }
+//        }.catch {
+//            onError(e)
+//        }
     }
 
-    /**
-     * Middlewareとしてのハンドラの再定義
-     * 呼ばれないはず
-     */
-    override suspend fun requestHandle(context: Context, next: NextProc) {
-        next.call(context).await()
-    }
-
-    /**
-     * Middlewareとしてのハンドラの再定義
-     * 呼ばれないはず
-     */
-    override suspend fun errorHandle(context: Context, next: NextProc) {
-        next.call(context).await()
-    }
-
-    private fun callback(): (res: dynamic, req: dynamic)->Promise<Unit> {
-
-        if (listenerCount("error") == 0) {
-            on("error") { err: Error? -> onError(err) }
-        }
-
-        return { res: dynamic, req: dynamic -> dispatch(res, req) }
-    }
-
-    private fun dispatch(res: dynamic, req: dynamic): Promise<Unit> {
-        val context = Context(this, req, res)
-        val stack2 = ArrayList<Layer>().apply { addAll(stack) }
-        return Dispatcher(this, stack2).call(context)
-    }
-
-    private fun onError(err: Error?) {
-        if (err == null) {
-            console.error("err is null at Application#onError.")
-        } else {
-            console.error("err = {$err} at Application#onError")
-        }
+    private fun onError(err: Throwable) {
+        console.error("err = {$err} at Application#onError")
     }
 
     /**
@@ -168,29 +188,8 @@ class Application(
             val path: Path,
             val method: Method?,
             val handler: Middleware
-    ) {
-        suspend fun handle(context: Context, next: NextProc) {
-            try {
-                handler.handle(context, next)
-            } catch (e: Error) {
-                context.setError(e)
-                handler.handle(context, next)
-            }
-        }
+    )
 
-        fun match(context: Context, path: Path, method: Method?): Boolean {
-            val params = this.path.matchParams(path)
-
-            return if (params == null) {
-                false
-            } else if (this.method == null || this.method == method) {
-                context.request.addParams(params)
-                true
-            } else {
-                false
-            }
-        }
-    }
     /**
      * PATHを扱うためのユーティリティクラス
      *
@@ -300,22 +299,28 @@ class Application(
     }
 
     /**
-     * stackに積まれたミドルウェアを連鎖させるためのクラス
+     * 非同期な処理をを行う関数
      */
-    private class Dispatcher(
-            private val app: Application,
-            private val stack: ArrayList<Layer>
-    ) : NextProc {
+    @Suppress("unused")
+    fun <T> async(target: T, block: suspend ()->T): Promise<T> {
+        val continuation = object : Continuation<T> {
+            override val context: CoroutineContext get() = EmptyCoroutineContext
+            override fun resume(value: T) {}
+            override fun resumeWithException(exception: Throwable) = throw exception
+        }
+        block.startCoroutine(continuation)
+        return Promise.resolve(target)
+    }
 
-        override fun call(context: Context): Promise<Unit> {
-            val layer = if (stack.isEmpty()) null else stack.removeAt(0)
-            return async {
-                if (layer == null) {
-                    app.handle(context, this)
-                } else {
-                    layer.handler.handle(context, this)
-                }
-            }
+    /**
+     * 非同期処理の完了を待つ拡張メソッド
+     */
+    @Suppress("unused")
+    suspend fun <T> Promise<T>.await(): T = suspendCoroutine { continuation ->
+        then {
+            continuation.resume(it)
+        }.catch {
+            continuation.resumeWithException(it)
         }
     }
 }
