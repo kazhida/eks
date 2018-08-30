@@ -77,52 +77,17 @@ class Application(
      * stackを使い果たしたか中断するかされたときに呼ばれる
      */
     override fun handle(context: Context): Context {
-        return if (parent != null) {
-            context.copy(isStopped = false)
-//        } else {
-//
-//            // allow bypassing koa
-//            //if (false === context.respond) return;
-//
-//            if (context.response.writable) {
-//                when {
-//                    context.isEmptyStatus -> {
-//                        context.response.body = null
-//                        context.response.end()
-//                    }
-//                    context.request.method == Method.HEAD -> // todo ちゃんと実装
-//                        //                    if (!res.headersSent && isJSON(body)) {
-//                        //                        ctx.length = Buffer.byteLength(JSON.stringify(body));
-//                        //                    }
-//                        context.response.end()
-//                    context.response.body == null -> {
-//                        // todo ちゃんと実装
-//                        val body = null
-//                        //                    body = ctx.message || String(code);
-//                        //                    if (!res.headersSent) {
-//                        //                        ctx.type = 'text';
-//                        //                        ctx.length = Buffer.byteLength(body);
-//                        //                    }
-//                        context.response.end(body)
-//                    }
-//                    else -> {
-//                        // todo ちゃんと実装
-//                        val body = null
-//                        //                    if (Buffer.isBuffer(body)) return res.end(body);
-//                        //                    if ('string' == typeof body) return res.end(body);
-//                        //                    if (body instanceof Stream) return body.pipe(res);
-//                        //
-//                        //                    // body: json
-//                        //                    body = JSON.stringify(body);
-//                        //                    if (!res.headersSent) {
-//                        //                        ctx.length = Buffer.byteLength(body);
-//                        //                    }
-//                        context.response.end(body)
-//                    }
-//                }
-//            }
-        } else {
-            context
+        return when {
+            parent != null -> // 親アプリがあるときはそれに返す
+                context.copy(isStopped = false)
+            context.response.writable -> // ここで、それなりのレスポンスを返す
+                when {
+                    context.response.isEmptyStatus -> context.endAsEmpty()
+                    context.request.method == Method.HEAD -> context.endAsHead()
+                    context.response.body == null -> context.endAsCode()
+                    else -> context.endAsNormally()
+                }
+            else -> context
         }
     }
 
@@ -151,7 +116,7 @@ class Application(
                 if (handled) {
                     resolve(context)
                 } else {
-                    resolve(context.notFound())
+                    resolve(context.endAsNotFound())
                 }
             } catch (e: Throwable) {
                 reject(e)

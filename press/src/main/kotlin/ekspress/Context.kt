@@ -36,12 +36,47 @@ data class Context(
         isStopped = this.isStopped
     )
 
-//    val isEmptyStatus: Boolean get() = when (response.status) {
-//        204,
-//        205,
-//        304 -> true
-//        else -> false
-//    }
+    internal fun endAsEmpty() = copy(
+            response = response.apply {
+                res.body = null
+                res.end()
+            },
+            isStopped = true
+    )
+
+    internal fun endAsHead() = copy(
+            response = response.apply {
+//                        if (!res.headersSent && isJSON(body)) {
+//                            ctx.length = Buffer.byteLength(JSON.stringify(body));
+//                        }
+                res.end()
+            },
+            isStopped = true
+    )
+
+    internal fun endAsCode() = copy(
+            response = response.apply {
+                val body = statusCode.toString()
+                if (!headersSent) {
+                    type = "text"
+                    length = body.length
+                }
+                end(body)
+            },
+            isStopped = true
+    )
+
+    internal fun endAsNotFound() = copy(
+            response = this.response.apply {
+                res.status = 404
+            },
+            isStopped = true
+    )
+
+    internal fun endAsNormally() = copy(
+            // todo ちゃんと実装
+            isStopped = true
+    )
 
     @Suppress("unused")
     private fun isValidStatus(status: Int): Boolean = when (status) {
@@ -118,16 +153,69 @@ data class Context(
      */
     data class Request(
             val req: dynamic
-    )
+    ) {
+        private val methodAsString: String? get() = req.method as String?
+
+        val method: Method? get() = when (methodAsString?.toUpperCase()) {
+            "HEAD" -> Method.HEAD
+            "GET" -> Method.GET
+            "PUT" -> Method.PUT
+            "POST" -> Method.POST
+            "DELETE" -> Method.DELETE
+            else -> null
+        }
+    }
 
     data class Response(
             val res: dynamic
-    )
+    ) {
+        val writable: Boolean = res.writeble
 
-    fun notFound() = Context(
-            app = this.app,
-            request = this.request,
-            response = this.response.apply { res.status = 404 },
-            isStopped = true
-    )
+        val isEmptyStatus: Boolean = when (res.status) {
+            204,
+            205,
+            304 -> true
+            else -> false
+        }
+
+        private val headerSentAsBoolean: Boolean? get() = res.headerSent as? Boolean
+        private val headerSentAsString: String? get() = res.headerSent as? String
+        private val headerSentAsInt: Int? get() = res.headerSent as? Int
+
+        val headersSent: Boolean
+            get() = headerSentAsBoolean ?:
+                    headerSentAsString?.toLowerCase()?.equals("true") ?:
+                    ((headerSentAsInt ?: 0) > 0)
+
+        var type: String?
+            get() = res.type
+            set(value) { res.type = value }
+
+        var statusCode: Int
+            get() = res.status.toString().toInt()
+            set(value) {
+                res.status = value
+            }
+
+        var body: String?
+            get() = res.body
+            set(value) { res.body = value }
+
+        var length: Int
+            get() = res.length
+            set(value) { res.length = value}
+
+        fun end(body: String? = null) {
+            if (body == null) {
+                this.body = body
+            }
+            res.end()
+        }
+
+        fun endAsEmpty() {
+            body = null
+            res.end()
+        }
+    }
+
 }
