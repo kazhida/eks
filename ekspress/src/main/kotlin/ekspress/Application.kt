@@ -6,10 +6,7 @@
  */
 package ekspress
 
-import ekspress.externals.EventEmitter
-import ekspress.externals.eventEmitter
-import ekspress.externals.http
-import ekspress.externals.https
+import ekspress.externals.*
 import kotlin.coroutines.experimental.*
 import kotlin.js.Promise
 
@@ -17,7 +14,7 @@ import kotlin.js.Promise
 class Application(
         private val path: Path = Path(path = "/"),      // アプリケーションが対応するパス
         private val parent: Application? = null         // 上位のアプリケーション
-) : Middleware, EventEmitter by eventEmitter() {
+) : Middleware, EventEmitter by NodeCore.eventEmitter() {
 
     /*-------------*/
     /*     API     */
@@ -57,14 +54,16 @@ class Application(
 //    fun delete(path: String, middleware: Middleware) = use(Method.DELETE, path, middleware)
 //
 
-    fun listen(port: Int, secure: Boolean = false, vararg args: Any?) {
-        if (secure) {
-            https
+    fun listen(port: Int, secure: NodeSecure? = null, callback: Procedure? = null, vararg args: Any?) {
+        if (secure != null) {
+            NodeCore.https.createServer(secure) {
+                dispatch()
+            }.listen(port, callback, args)
         } else {
-            http
-        }.createServer {
-            callback()
-        }.listen(port, null, args)
+            NodeCore.http.createServer {
+                dispatch()
+            }.listen(port, callback, args)
+        }
     }
 
     /*-------------*/
@@ -103,7 +102,7 @@ class Application(
      * @args res Node.jsのレスポンス
      * @return コンテクストを返すプロミス
      */
-    private fun callback(): (res: dynamic, req: dynamic)->Promise<Context> {
+    private fun dispatch(): (res: dynamic, req: dynamic)->Promise<Context> {
         if (listenerCount("error") == 0) {
             on("error") { err: Throwable -> onError(err) }
         }

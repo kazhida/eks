@@ -15,6 +15,8 @@ import ekspress.Context
 import ekspress.Procedure
 import kotlin.js.Promise
 
+external fun require(module:String): dynamic
+
 @Suppress("unused")
 external interface EventEmitter {
     fun on(name: String, fn: dynamic): EventEmitter
@@ -27,25 +29,33 @@ external interface EventEmitter {
     fun emit(name: String, vararg args: dynamic): Boolean
 }
 
+typealias NodeServerCallback = (req: dynamic, res: dynamic)->Promise<Context>
+typealias NodeCallback = (err: Throwable?, result: Any?)->Unit
+
+interface NodeSecure {
+    val key: String
+    val cert: String
+}
+
 interface NodeHttp {
-    fun createServer(requestListener: ()->NodeCallback): NodeServer
+    fun createServer(requestListener: ()->NodeServerCallback): NodeServer
+}
+
+interface NodeHttps {
+    fun createServer(secure: NodeSecure, requestListener: ()->NodeServerCallback): NodeServer
 }
 
 interface NodeServer {
     fun listen(port: Int, callback: Procedure?, vararg args: Any?): NodeServer
 }
 
-external fun require(module:String): dynamic
-
-val http = require("http").unsafeCast<NodeHttp>()
-val https = require("https").unsafeCast<NodeHttp>()
-fun eventEmitter() = require("events").EventEmitter.unsafeCast<EventEmitter>()
-
-typealias NodeCallback = (req: dynamic, res: dynamic)->Promise<Context>
-
-
+/**
+ *
+ */
 @Suppress("unused")
-object NodePath {
-    private val path = require("path")
-    val extname = path.extname.unsafeCast<(filename: String)->String>()
+object NodeCore {
+    val http by lazy { require("http").unsafeCast<NodeHttp>() }
+    val https by lazy { require("https").unsafeCast<NodeHttps>() }
+    val eventEmitter = require("events").EventEmitter.unsafeCast<()->EventEmitter>()
+    val path = require("path")
 }

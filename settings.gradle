@@ -1,2 +1,2 @@
-include ':example', ':press', ':graph', ":tension", ":machina"
+include ':example', ':ekspress', ':eksgraph', ":ekstension", ":eksmachina"
 
