@@ -3,9 +3,6 @@ version '0.0.0'
 
 apply plugin: 'kotlin2js'
 
-// Kotlin transpiled files will be copied to this directory
-def output_dir = "${projectDir}/../node"
-
 repositories {
     mavenCentral()
 }
@@ -13,9 +10,10 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
     testCompile "org.jetbrains.kotlin:kotlin-test-js:$kotlin_version"
-    compile project(':press')
-    compile project(':graph')
-    compile project(':tension')
+    compile project(':ekscore')
+    compile project(':ekspress')
+    compile project(':eksgraph')
+    compile project(':ekstension')
 }
 
 sourceSets {
@@ -26,35 +24,31 @@ compileKotlin2Js {
     kotlinOptions.metaInfo = true
     kotlinOptions.sourceMap = true
     kotlinOptions.suppressWarnings = true
-    kotlinOptions.outputFile = "$output_dir/example.js"
+    kotlinOptions.outputFile = "${projectDir}/node/index.js"
     kotlinOptions.moduleKind = "commonjs" //this is important to properly allow require() import
     //kotlinOptions.verbose = true
 }
 
-jar.dependsOn(compileKotlin2Js)
-
-task copyJsFilesFromDependencies(dependsOn: build) {
-    try {
-        //copy all necessary .js files
-        configurations.compile.each { File file ->
-            copy {
-                includeEmptyDirs = true
-                println("cmp: ${file.absolutePath}")
-                from zipTree(file.absolutePath)
-                into "$output_dir"
-                include { fileTreeElement ->
-                    def path = fileTreeElement.path
-                    def include=path.endsWith(".js") && (path.startsWith("META-INF/resources/") || !path.startsWith("META-INF/"))
-                    if (include) println("unziping $path")
-                    return include
-                }
+task assembleWeb(type: Sync) {
+    configurations.compile.each { file ->
+        from(zipTree(file.absolutePath), {
+            includeEmptyDirs = false
+            include { fileTreeElement ->
+                def path = fileTreeElement.path
+                path.endsWith(".js") && (path.startsWith("META-INF/resources/") ||
+                        !path.startsWith("META-INF/"))
             }
-        }
-    } catch (Exception e) {
-        System.err.println(e.getMessage())
+        })
     }
+    from compileKotlin2Js.destinationDir
+    into "${projectDir}/node_modules"
+
+    dependsOn classes
 }
 
+assemble.dependsOn assembleWeb
+
 clean.doFirst() {
-    delete "$output_dir"
+    delete "${projectDir}/node"
+    delete "${projectDir}/node_modules"
 }
