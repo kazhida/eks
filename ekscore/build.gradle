@@ -10,7 +10,6 @@ repositories {
 dependencies {
     compile "org.jetbrains.kotlin:kotlin-stdlib-js:$kotlin_version"
     testCompile "org.jetbrains.kotlin:kotlin-test-js:$kotlin_version"
-    compile project(':ekscore')
 }
 
 sourceSets {
@@ -23,9 +22,4 @@ compileKotlin2Js {
     kotlinOptions.suppressWarnings = true
     kotlinOptions.moduleKind = "commonjs" //this is important to properly allow require() import
     //kotlinOptions.verbose = true
-}
-kotlin {
-    experimental {
-        coroutines "enable"
-    }
 }

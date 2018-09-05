@@ -32,11 +32,6 @@ enum class Method {
 typealias Handler = (context: Context)->Context
 
 /**
- * 引数も返値も持たないコールバック関数型
- */
-typealias Procedure = ()->Unit
-
-/**
  * ミドルウェアの大本
  */
 interface Middleware {

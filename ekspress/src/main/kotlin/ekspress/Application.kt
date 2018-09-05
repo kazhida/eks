@@ -6,6 +6,9 @@
  */
 package ekspress
 
+import ekscore.EventEmitter
+import ekscore.Https
+import ekscore.Procedure
 import ekspress.externals.*
 import kotlin.coroutines.experimental.*
 import kotlin.js.Promise
@@ -54,7 +57,7 @@ class Application(
 //    fun delete(path: String, middleware: Middleware) = use(Method.DELETE, path, middleware)
 //
 
-    fun listen(port: Int, secure: NodeSecure? = null, callback: Procedure? = null, vararg args: Any?) {
+    fun listen(port: Int, secure: Https.SecureOption? = null, callback: Procedure? = null, vararg args: Any?) {
         if (secure != null) {
             NodeCore.https.createServer(secure) {
                 dispatch()
@@ -103,9 +106,9 @@ class Application(
      * @return コンテクストを返すプロミス
      */
     private fun dispatch(): (res: dynamic, req: dynamic)->Promise<Context> {
-        if (listenerCount("error") == 0) {
-            on("error") { err: Throwable -> onError(err) }
-        }
+//        if (listenerCount("error") == 0) {
+//            on("error") { err: Throwable -> onError(err) }
+//        }
         return { res: dynamic, req: dynamic ->
             dispatch(Context.create(this, res, req))
         }

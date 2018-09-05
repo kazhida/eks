@@ -1,2 +1,10 @@
-include ':example', ':ekspress', ':eksgraph', ":ekstension", ":eksmachina"
-
+pluginManagement {
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == "kotlin2js") {
+                useModule("org.jetbrains.kotlin:kotlin-gradle-plugin:${requested.version}")
+            }
+        }
+    }
+}
+include ':example', ':ekscore', ':ekspress', ':eksgraph', ":ekstension", ":eksmachina"
