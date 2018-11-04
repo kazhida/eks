@@ -15,7 +15,8 @@ Inspired from express.js and koa.js.
 * Express.jsと同じようなものをKotlinで再実装してみる（[ekspress](./press/README.md)）
 * その上で、ミドルウェアとして、GraphQLを使うためのなにかを作る（[eksgraph](./graph/README.md)）
 * 必要そうなミドルウェアを用意する（[ekstension](./tension/README.md)）
-* あわよくば、フルスタックなフレームワークまでいっちゃおう（[eksmachina](./machina/README.md)）
+* ~~あわよくば、フルスタックなフレームワークまでいっちゃおう（[eksmachina](./machina/README.md)）~~
+* npmやwebpackを直に触らなくてもすむようなGradleプラグインを作る必要があるな（[eksmachina](./machina/README.md)）
 
 という壮大なプロジェクトを始めた。
 
