@@ -6,10 +6,8 @@
  */
 package ekspress
 
-import ekscore.EventEmitter
-import ekscore.Https
-import ekscore.Procedure
-import kotlin.coroutines.experimental.*
+import ekscore.*
+import kotlin.coroutines.*
 import kotlin.js.Promise
 
 @Suppress("unused")
@@ -108,7 +106,7 @@ class Application(
         if (listenerCount("error") == 0) {
             on("error") { err: Throwable -> onError(err) }
         }
-        return { res: dynamic, req: dynamic ->
+        return { res: IncomingMessage, req: ServerResponse ->
             dispatch(Context.create(this, res, req))
         }
     }
@@ -280,9 +278,8 @@ class Application(
     @Suppress("unused")
     fun <T> async(target: T, block: suspend ()->T): Promise<T> {
         val continuation = object : Continuation<T> {
+            override fun resumeWith(result: Result<T>) {}
             override val context: CoroutineContext get() = EmptyCoroutineContext
-            override fun resume(value: T) {}
-            override fun resumeWithException(exception: Throwable) = throw exception
         }
         block.startCoroutine(continuation)
         return Promise.resolve(target)
