@@ -8,8 +8,6 @@ package ekscore
 
 import kotlin.js.Promise
 
-external fun require(module:String): dynamic
-
-typealias ServerCallback<T> = (req: dynamic, res: dynamic)-> Promise<T>
+typealias ServerCallback<T> = (req: IncomingMessage, res: ServerResponse)-> Promise<T>
 typealias NodeCallback = (err: Throwable?, result: Any?)->Unit
 typealias Procedure = ()->Unit

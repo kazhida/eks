@@ -6,5 +6,6 @@
  */
 package ekscore
 
-external interface Path {
+external interface Buffer {
+
 }

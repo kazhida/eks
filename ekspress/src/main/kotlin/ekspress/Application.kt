@@ -6,16 +6,13 @@
  */
 package ekspress
 
-import ekscore.EventEmitter
-import ekscore.Https
-import ekscore.Procedure
-import ekspress.externals.*
-import kotlin.coroutines.experimental.*
+import ekscore.*
+import kotlin.coroutines.*
 import kotlin.js.Promise
 
 @Suppress("unused")
 class Application(
-        private val path: Path = Path(path = "/"),      // アプリケーションが対応するパス
+        private val path: PathQuery = PathQuery(path = "/"),      // アプリケーションが対応するパス
         private val parent: Application? = null         // 上位のアプリケーション
 ) : Middleware, EventEmitter by NodeCore.eventEmitter() {
 
@@ -39,7 +36,7 @@ class Application(
             layer.handler as Application
         } else {
             // 自分の下に作って返す
-            val subPath = this.path.concat(Path(path))
+            val subPath = this.path.concat(PathQuery(path))
             Application(subPath, this).also { app ->
                 stack.add(Layer(subPath, null, app))
             }
@@ -106,10 +103,10 @@ class Application(
      * @return コンテクストを返すプロミス
      */
     private fun dispatch(): (res: dynamic, req: dynamic)->Promise<Context> {
-//        if (listenerCount("error") == 0) {
-//            on("error") { err: Throwable -> onError(err) }
-//        }
-        return { res: dynamic, req: dynamic ->
+        if (listenerCount("error") == 0) {
+            on("error") { err: Throwable -> onError(err) }
+        }
+        return { res: IncomingMessage, req: ServerResponse ->
             dispatch(Context.create(this, res, req))
         }
     }
@@ -162,7 +159,7 @@ class Application(
      * @args handler ミドルウェア
      */
     private class Layer(
-            val path: Path,
+            val path: PathQuery,
             val method: Method?,
             val handler: Middleware
     )
@@ -172,7 +169,7 @@ class Application(
      *
      * @args src PATHを"/"で区切った文字列リスト
      */
-    class Path private constructor(src: List<String>) {
+    class PathQuery private constructor(src: List<String>) {
 
         companion object {
             /**
@@ -203,7 +200,7 @@ class Application(
         /**
          * リストの先頭を除いた残りを生成して返すプロパティ
          */
-        val rest: Path get() = Path(directories.slice(1..directories.size))
+        val rest: PathQuery get() = PathQuery(directories.slice(1..directories.size))
 
         /**
          * 渡されたPATH文字列との先頭一致を判別するメソッド
@@ -211,7 +208,7 @@ class Application(
          * @args path PATH文字列
          * @return 先頭一致していればtrue
          */
-        fun contains(path: String): Boolean = contains(Path(path))
+        fun contains(path: String): Boolean = contains(PathQuery(path))
 
         /**
          * 渡されたPATHとの先頭一致を判別するメソッド
@@ -219,7 +216,7 @@ class Application(
          * @args path PATHを"/"で分離したリスト
          * @return 先頭一致していればtrue
          */
-        fun contains(path: Path): Boolean {
+        fun contains(path: PathQuery): Boolean {
             if (path.directories.size > this.directories.size) {
                 return false
             } else {
@@ -238,12 +235,12 @@ class Application(
          * @args path 末尾に連結するリスト
          * @return 連結された新しいリスト
          */
-        fun concat(path: Path): Path {
+        fun concat(path: PathQuery): PathQuery {
             val cat = ArrayList<String>().apply {
                 addAll(directories)
                 addAll(path.directories)
             }
-            return Path(cat)
+            return PathQuery(cat)
         }
 
         /**
@@ -252,7 +249,7 @@ class Application(
          * @args path 判定の大詔となるPATH
          * @return 一致していなければnull、一致していたときはパラメータのmapを返す
          */
-        fun matchParams(path: Path): Map<String, String>? {
+        fun matchParams(path: PathQuery): Map<String, String>? {
             return if (path.directories.size != directories.size) {
                 null
             } else {
@@ -281,9 +278,8 @@ class Application(
     @Suppress("unused")
     fun <T> async(target: T, block: suspend ()->T): Promise<T> {
         val continuation = object : Continuation<T> {
+            override fun resumeWith(result: Result<T>) {}
             override val context: CoroutineContext get() = EmptyCoroutineContext
-            override fun resume(value: T) {}
-            override fun resumeWithException(exception: Throwable) = throw exception
         }
         block.startCoroutine(continuation)
         return Promise.resolve(target)

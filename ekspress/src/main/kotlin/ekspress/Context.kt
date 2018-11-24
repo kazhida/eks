@@ -6,6 +6,9 @@
  */
 package ekspress
 
+import ekscore.IncomingMessage
+import ekscore.ServerResponse
+
 /**
  * ミドルウェアを渡り歩いていくコンテキスト
  *
@@ -24,8 +27,8 @@ data class Context(
         // Applicationのcallbackで使うファクトリ
         fun create(
                 app: Application,
-                req: dynamic,
-                res: dynamic
+                req: IncomingMessage,
+                res: ServerResponse
         ): Context = Context(app, Request(req), Response(res))
     }
 
@@ -124,7 +127,7 @@ data class Context(
      * @args req Node.jsのリクエスト
      */
     data class Request(
-            val req: dynamic
+            val req: IncomingMessage
     ) {
         private val methodAsString: String? get() = req.method as String?
 
@@ -147,9 +150,9 @@ data class Context(
      * @args res Node.jsのレスポンス
      */
     data class Response(
-            val res: dynamic
+            val res: ServerResponse
     ) {
-        val writable: Boolean = res.writeble.unsafeCast<Boolean>()
+        val writable: Boolean = res.writable.unsafeCast<Boolean>()
 
         /**
          * コンテントが空のステータスコードならtrue
