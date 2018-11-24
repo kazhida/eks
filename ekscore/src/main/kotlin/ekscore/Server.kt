@@ -6,6 +6,6 @@
  */
 package ekscore
 
-interface Server {
+external interface Server {
     fun listen(port: Int, callback: Procedure?, vararg args: Any?): Server
 }

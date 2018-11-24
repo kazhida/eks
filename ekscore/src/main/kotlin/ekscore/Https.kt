@@ -6,12 +6,13 @@
  */
 package ekscore
 
-interface Https<T> {
+@JsModule("https")
+external object Https {
 
     interface SecureOption {
         val key: String
         val cert: String
     }
 
-    fun createServer(secure: SecureOption, requestListener: ()->ServerCallback<T>): Server
+    fun createServer(secure: SecureOption, requestListener: ()->ServerCallback<Any>): Server
 }

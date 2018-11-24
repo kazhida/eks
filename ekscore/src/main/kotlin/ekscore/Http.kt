@@ -6,6 +6,7 @@
  */
 package ekscore
 
-external interface Http<T> {
-    fun createServer(requestListener: ()->ServerCallback<T>): Server
+@JsModule("http")
+external object Http {
+    fun createServer(requestListener: ()->ServerCallback<Any>): Server
 }

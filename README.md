@@ -12,11 +12,11 @@ Inspired from express.js and koa.js.
 
 その一方で、Androidアプリの開発以外でもKotlinを使いたい（すべての分野にあまねくKotlinを）こともあって、
 
-* Express.jsと同じようなものをKotlinで再実装してみる（[ekspress](./press/README.md)）
-* その上で、ミドルウェアとして、GraphQLを使うためのなにかを作る（[eksgraph](./graph/README.md)）
-* 必要そうなミドルウェアを用意する（[ekstension](./tension/README.md)）
-* ~~あわよくば、フルスタックなフレームワークまでいっちゃおう（[eksmachina](./machina/README.md)）~~
-* npmやwebpackを直に触らなくてもすむようなGradleプラグインを作る必要があるな（[eksmachina](./machina/README.md)）
+* Express.jsと同じようなものをKotlinで再実装してみる（[ekspress](./ekspress/README.md)）
+* その上で、ミドルウェアとして、GraphQLを使うためのなにかを作る（[eksgraph](./eksgraph/README.md)）
+* 必要そうなミドルウェアを用意する（[ekstension](./ekstension/README.md)）
+* ~~あわよくば、フルスタックなフレームワークまでいっちゃおう（[eksmachina](./eksmachina/README.md)）~~
+* npmやwebpackを直に触らなくてもすむようなGradleプラグインを作る必要があるな（[eksmachina](./eksmachina/README.md)）
 
 という壮大なプロジェクトを始めた。
 
@@ -24,11 +24,13 @@ Inspired from express.js and koa.js.
 
 とにかく、GraphQLを使ったAPIサーバまでは作りたい。
 
-その上で、フルスタック・フレームワークに成長させたい。
+~~その上で、フルスタック・フレームワークに成長させたい。~~
+
+ビルド〜デプロイを行うためのGradleプラグインを作って、
+GAEにデプロイしたりすることができるようにしたい。
 
 ## 開発体制
 
 僕個人が、通勤時間を使って、開発しているので、圧倒的に時間が足りない。
 
 しかし、何かしら制限を入れないと、これにかかりきりになってしまって、社会的にまずいことになりかねないので、この制限は原則として持っておく。
-ちなみに、今はこれに集中するために、例年と異なり夏休みをとって開発を進めている（2018/8/9:現在）。

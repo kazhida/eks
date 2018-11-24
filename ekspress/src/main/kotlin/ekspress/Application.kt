@@ -12,8 +12,8 @@ import kotlin.js.Promise
 
 @Suppress("unused")
 class Application(
-        private val path: PathQuery = PathQuery(path = "/"),      // アプリケーションが対応するパス
-        private val parent: Application? = null         // 上位のアプリケーション
+        private val path: PathQuery = PathQuery(path = "/"),    // アプリケーションが対応するパス
+        private val parent: Application? = null                 // 上位のアプリケーション
 ) : Middleware, EventEmitter by NodeCore.eventEmitter() {
 
     /*-------------*/
@@ -43,26 +43,33 @@ class Application(
         }
     }
 
-//    private fun use(method: Method?, path: String, middleware: Middleware) {
-//
-//    }
-//
-//    fun use(path: String, middleware: Middleware) = use(null, path, middleware)
-//    fun get(path: String, middleware: Middleware)  = use(Method.GET, path, middleware)
-//    fun put(path: String, middleware: Middleware)  = use(Method.PUT, path, middleware)
-//    fun post(path: String, middleware: Middleware)  = use(Method.POST, path, middleware)
-//    fun delete(path: String, middleware: Middleware) = use(Method.DELETE, path, middleware)
-//
+    private fun use(method: Method?, path: String, middleware: Middleware) {
+        stack.add(Layer(PathQuery(path), method, middleware))
+    }
+    fun use(path: String, middleware: Middleware) = use(null, path, middleware)
+    fun get(path: String, middleware: Middleware) = use(Method.GET, path, middleware)
+    fun put(path: String, middleware: Middleware) = use(Method.PUT, path, middleware)
+    fun post(path: String, middleware: Middleware) = use(Method.POST, path, middleware)
+    fun delete(path: String, middleware: Middleware) = use(Method.DELETE, path, middleware)
 
-    fun listen(port: Int, secure: Https.SecureOption? = null, callback: Procedure? = null, vararg args: Any?) {
+    private fun use(method: Method?, path: String, handler: Handler) {
+        stack.add(Layer(PathQuery(path), method, Middleware.Handle(handler)))
+    }
+    fun use(path: String, handler: Handler) = use(null, path, handler)
+    fun get(path: String, handler: Handler) = use(Method.GET, path, handler)
+    fun put(path: String, handler: Handler) = use(Method.PUT, path, handler)
+    fun post(path: String, handler: Handler) = use(Method.POST, path, handler)
+    fun delete(path: String, handler: Handler) = use(Method.DELETE, path, handler)
+
+    fun listen(port: Int, secure: Https.SecureOption? = null, callback: Procedure? = null) {
         if (secure != null) {
-            NodeCore.https.createServer(secure) {
+            Https.createServer(secure) {
                 dispatch()
-            }.listen(port, callback, args)
+            }.listen(port, callback)
         } else {
-            NodeCore.http.createServer {
+            Http.createServer {
                 dispatch()
-            }.listen(port, callback, args)
+            }.listen(port, callback)
         }
     }
 
@@ -103,9 +110,9 @@ class Application(
      * @return コンテクストを返すプロミス
      */
     private fun dispatch(): (res: dynamic, req: dynamic)->Promise<Context> {
-        if (listenerCount("error") == 0) {
-            on("error") { err: Throwable -> onError(err) }
-        }
+//        if (listenerCount("error") == 0) {
+//            on("error") { err: Throwable -> onError(err) }
+//        }
         return { res: IncomingMessage, req: ServerResponse ->
             dispatch(Context.create(this, res, req))
         }
