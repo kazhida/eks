@@ -6,7 +6,10 @@
  */
 package ekspress
 
-import ekscore.*
+import js.node.events.internal.EventEmitter
+import js.node.http.IncomingMessage
+import js.node.http.ServerResponse
+import js.node.http2.ServerOptions
 import kotlin.coroutines.*
 import kotlin.js.Promise
 
@@ -14,7 +17,7 @@ import kotlin.js.Promise
 class Application(
         private val path: PathQuery = PathQuery(path = "/"),    // アプリケーションが対応するパス
         private val parent: Application? = null                 // 上位のアプリケーション
-) : Middleware, EventEmitter by NodeCore.eventEmitter() {
+) : EventEmitter(), Middleware {
 
     /*-------------*/
     /*     API     */
@@ -61,13 +64,13 @@ class Application(
     fun post(path: String, handler: Handler) = use(Method.POST, path, handler)
     fun delete(path: String, handler: Handler) = use(Method.DELETE, path, handler)
 
-    fun listen(port: Int, secure: Https.SecureOption? = null, callback: Procedure? = null) {
+    fun listen(port: Int, secure: SecureOption? = null, callback: Procedure? = null) {
         if (secure != null) {
-            Https.createServer(secure) {
+            js.node.http2.createServer(secure) {
                 dispatch()
             }.listen(port, callback)
         } else {
-            Http.createServer {
+            js.node.http.createServer {
                 dispatch()
             }.listen(port, callback)
         }

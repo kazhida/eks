@@ -6,8 +6,8 @@
  */
 package ekspress
 
-import ekscore.IncomingMessage
-import ekscore.ServerResponse
+import js.node.http.IncomingMessage
+import js.node.http.ServerResponse
 
 /**
  * ミドルウェアを渡り歩いていくコンテキスト

@@ -23,8 +23,8 @@ package-lock.json
 .idea/
 *.iml
 build/
-work/
-node/
+/work/
+/node/
 
 
 # Compiled class file
